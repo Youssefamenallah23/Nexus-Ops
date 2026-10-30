@@ -3,6 +3,7 @@ import os
 # Force the deterministic mock provider for the whole test suite — no network, no keys.
 os.environ.setdefault("GOOGLE_API_KEY", "")
 os.environ.setdefault("NVIDIA_API_KEY", "")
+os.environ["N8N_WEBHOOK_URL"] = ""  # workflow tests must run in mock mode
 os.environ["DATABASE_URL"] = "sqlite://"
 
 import pytest  # noqa: E402

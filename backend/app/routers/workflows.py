@@ -72,11 +72,13 @@ def send_overdue_reminders(db: DBSession = Depends(get_db),
     overdue = (db.query(Task)
                .filter(Task.due_date.is_not(None), Task.due_date < now, Task.status != "completed")
                .all())
-    counts = {"sent": 0, "failed": 0, "mock": 0}
+    counts = {"success": 0, "failed": 0, "mock": 0}
     for t in overdue:
         row = emit(db, workflow_type="task_reminder", entity_type="task", entity_id=str(t.id),
                    payload={"task_id": str(t.id), "title": t.title, "department": t.department,
                             "due_date": t.due_date.isoformat(), "assignee": t.assignee.name if t.assignee else None},
                    actor=user)
         counts[row.status if row.status in ("success", "failed", "mock") else "failed"] += 1
-    return counts
+    return ReminderOut(
+        sent=counts["success"], failed=counts["failed"], mock=counts["mock"]
+    )

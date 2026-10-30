@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nexus Ops frontend
 
-## Getting Started
+Next.js App Router workspace for uploading and reviewing operational documents, following tasks and webhook delivery, and asking the copilot about approved sources.
 
-First, run the development server:
+See the [root README](../README.md) for the product idea, backend setup, seeded accounts, and a complete demo walkthrough.
 
-```bash
+## Develop
+
+```powershell
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [localhost:3000](http://localhost:3000). The backend must run on port 8000 for sign-in and workspace data. The landing simulation is local and works without the API.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The API helper in `lib/api.ts` uses the browser hostname on port 8000 by default. For another API origin, set `NEXT_PUBLIC_API_URL` in `.env.local` and restart Next.js. Keep frontend/API cookie and CORS configuration aligned.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Main files
 
-## Learn More
+- `app/page.tsx`: landing page.
+- `components/landing/grid-canvas.tsx`: interactive Three.js scene, demand rendering, fixed camera distance.
+- `components/landing/landing-motion.tsx`: GSAP text animation.
+- `components/landing/interactive-pipeline-demo.tsx`: local sample simulation and approval/rejection gate.
+- `app/(dashboard)/app/documents`: real upload and review workflow.
+- `app/(dashboard)/app/copilot`: retrieval questions and cited answers.
+- `components/dashboard-shell.tsx`: session gate, navigation, and shared shell.
+- `app/tokens.css` and `app/premium.css`: shared visual system.
 
-To learn more about Next.js, take a look at the following resources:
+The 3D scene is idle by default. Drag to rotate; arrow keys work when focused; Home resets. Auto-rotation is optional. Scroll and pinch do not change camera distance. Rendering stops off-screen and reduced-motion preferences are respected.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Check
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```powershell
+npm run lint -- --quiet
+npm run build
+```
 
-## Deploy on Vercel
+Browser checks need the running development server and Chrome. Set `CHROME_PATH` to override the default Windows executable location.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```powershell
+node scripts/ui-smoke.mjs
+node scripts/login-smoke.mjs
+node scripts/workflow-smoke.mjs
+node scripts/scene-smoke.mjs
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Avoid running `next start` beside `next dev` for the same workspace. A production server serves the last build, which may reference stale assets after further edits.

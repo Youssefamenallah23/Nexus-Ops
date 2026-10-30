@@ -1,21 +1,60 @@
 import { Badge } from "@/components/ui/badge";
 
 const MAP: Record<string, { label: string; className: string }> = {
-  uploaded: { label: "Uploaded", className: "border-border text-muted-foreground" },
-  needs_review: { label: "Needs review", className: "border-[var(--fault)]/40 bg-[var(--fault)]/10 text-[var(--fault)]" },
-  approved: { label: "Approved", className: "border-primary/40 bg-primary/10 text-primary" },
-  rejected: { label: "Rejected", className: "border-transparent bg-[var(--fault)] text-[#02070a]" },
-  pending_review: { label: "Pending", className: "border-border text-muted-foreground" },
-  in_progress: { label: "In progress", className: "border-primary/30 bg-primary/5 text-primary/90" },
-  blocked: { label: "Blocked", className: "border-[var(--fault)]/40 bg-[var(--fault)]/10 text-[var(--fault)]" },
-  completed: { label: "Completed", className: "border-transparent bg-primary text-[#02070a]" },
-  success: { label: "Success", className: "border-primary/40 bg-primary/10 text-primary" },
-  mock: { label: "Mock", className: "border-border text-muted-foreground" },
-  failed: { label: "Failed", className: "border-[var(--fault)]/40 bg-[var(--fault)]/10 text-[var(--fault)]" },
+  uploaded: {
+    label: "Uploaded",
+    className: "border-white/[0.08] bg-white/[0.04] text-muted-foreground rounded-full",
+  },
+  needs_review: {
+    label: "Needs Review",
+    className: "border-fault/30 bg-fault/10 text-fault font-medium rounded-full",
+  },
+  approved: {
+    label: "Approved",
+    className: "border-success/30 bg-success/10 text-success font-medium rounded-full",
+  },
+  rejected: {
+    label: "Rejected",
+    className: "border-destructive/30 bg-destructive/10 text-destructive font-medium rounded-full",
+  },
+  pending_review: {
+    label: "Pending",
+    className: "border-white/[0.08] bg-white/[0.04] text-muted-foreground rounded-full",
+  },
+  in_progress: {
+    label: "In Progress",
+    className: "border-primary/30 bg-primary/10 text-primary font-medium rounded-full",
+  },
+  blocked: {
+    label: "Blocked",
+    className: "border-fault/30 bg-fault/10 text-fault font-medium rounded-full",
+  },
+  completed: {
+    label: "Completed",
+    className: "border-success/30 bg-success/10 text-success font-medium rounded-full",
+  },
+  success: {
+    label: "Success",
+    className: "border-success/30 bg-success/10 text-success font-medium rounded-full",
+  },
+  mock: {
+    label: "Mock Run",
+    className: "border-white/[0.08] bg-white/[0.04] text-muted-foreground rounded-full",
+  },
+  failed: {
+    label: "Failed",
+    className: "border-destructive/30 bg-destructive/10 text-destructive font-medium rounded-full",
+  },
 };
 
 export function StatusBadge({ status }: { status: string }) {
-  const s = MAP[status] ?? { label: status, className: "border-border text-muted-foreground" };
-  return <Badge variant="outline" className={s.className}>{s.label}</Badge>;
+  const s = MAP[status] ?? {
+    label: status,
+    className: "border-white/[0.08] bg-white/[0.04] text-muted-foreground rounded-full",
+  };
+  return (
+    <Badge variant="outline" className={`px-2.5 py-0.5 text-[10px]  ${s.className}`}>
+      {s.label}
+    </Badge>
+  );
 }
-

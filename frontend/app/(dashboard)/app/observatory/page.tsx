@@ -2,37 +2,52 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { FlaskConical } from "lucide-react";
+import { FlaskConical, Activity, CheckCircle2, AlertTriangle, XCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
 type Trace = {
-  id: string; agent: string; provider: string; model: string; document_id: string | null;
-  input_summary: string; output: Record<string, unknown>; latency_ms: number;
-  tokens_in: number | null; tokens_out: number | null; confidence: number | null;
-  status: string; created_at: string;
+  id: string;
+  agent: string;
+  provider: string;
+  model: string;
+  document_id: string | null;
+  input_summary: string;
+  output: Record<string, unknown>;
+  latency_ms: number;
+  tokens_in: number | null;
+  tokens_out: number | null;
+  confidence: number | null;
+  status: string;
+  created_at: string;
 };
 
 type Summary = {
   by_agent: { agent: string; provider: string; calls: number; avg_latency_ms: number }[];
-  fallback_rate: number; error_rate: number; total_calls: number;
+  fallback_rate: number;
+  error_rate: number;
+  total_calls: number;
 };
 
 type EvalResult = {
-  provider: string; sample: string; ok: boolean; doc_type?: string;
-  confidence?: number; latency_ms: number; tokens?: Record<string, unknown>; error?: string;
-};
-
-const STATUS_STYLE: Record<string, string> = {
-  ok: "border-primary/40 bg-primary/10 text-primary",
-  fallback: "border-[var(--fault)]/40 bg-[var(--fault)]/10 text-[var(--fault)]",
-  error: "border-[var(--fault)] bg-[var(--fault)] text-[#02070a]",
+  provider: string;
+  sample: string;
+  ok: boolean;
+  doc_type?: string;
+  confidence?: number;
+  latency_ms: number;
+  tokens?: Record<string, unknown>;
+  error?: string;
 };
 
 export default function ObservatoryPage() {
@@ -43,19 +58,26 @@ export default function ObservatoryPage() {
   const [evaluating, setEvaluating] = useState(false);
 
   const load = useCallback(() => {
-    api<Trace[]>("/observatory/traces").then(setTraces).catch((e) => { toast.error(e.message); setTraces([]); });
+    api<Trace[]>("/observatory/traces")
+      .then(setTraces)
+      .catch((e) => {
+        toast.error(e.message);
+        setTraces([]);
+      });
     api<Summary>("/observatory/summary").then(setSummary).catch(() => setSummary(null));
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   async function runEvaluation() {
     setEvaluating(true);
-    toast.info("Running providers on identical documents — Mistral may take a couple of minutes...");
+    toast.info("Running parallel evaluation across models...");
     try {
       const r = await api<{ results: EvalResult[] }>("/observatory/evaluate", { method: "POST" });
       setEvalResults(r.results);
-      toast.success("Evaluation complete");
+      toast.success("Evaluation complete.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Evaluation failed");
     } finally {
@@ -66,167 +88,216 @@ export default function ObservatoryPage() {
   const canEval = user?.role === "administrator";
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-col gap-8">
+      {/* Top Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Agent Observatory</h2>
-          <p className="text-sm text-muted-foreground">
-            Which agent ran, on which model, how long it took, how confident it was.
+          <div className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]" />
+            <span className="text-xs font-medium text-muted-foreground">Model Telemetry & Evaluation</span>
+          </div>
+          <h2 className="mt-1.5 text-2xl font-semibold tracking-tight text-white">Agent Observatory</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Latency distribution, token consumption, confidence distributions, and fallback telemetry.
           </p>
         </div>
+
         {canEval && (
-          <Button onClick={runEvaluation} disabled={evaluating}>
-            <FlaskConical /> {evaluating ? "Running..." : "Run provider evaluation"}
+          <Button
+            onClick={runEvaluation}
+            disabled={evaluating}
+            className="rounded-full bg-white px-5 text-xs font-semibold text-black shadow-[0_4px_16px_var(--highlight)] hover:bg-white/90 disabled:opacity-50"
+          >
+            <FlaskConical className="size-3.5" />
+            {evaluating ? "Evaluating Providers..." : "Run Multi-Model Benchmark"}
           </Button>
         )}
       </div>
 
+      {/* 3 Metric Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         {summary ? (
           <>
-            <Metric label="Total agent calls" value={String(summary.total_calls)} />
-            <Metric label="Fallback rate" value={`${Math.round(summary.fallback_rate * 100)}%`} />
-            <Metric label="Error rate" value={`${Math.round(summary.error_rate * 100)}%`} />
+            <div className="rounded-2xl border border-white/[0.08] bg-[var(--card)]/80 p-6 backdrop-blur-2xl">
+              <div className="text-xs font-medium text-muted-foreground">Total Agent Invocations</div>
+              <div className="tnum mt-3 text-3xl font-semibold text-white tracking-tight">
+                {summary.total_calls.toLocaleString()}
+              </div>
+              <div className="mt-2 text-[11px] text-muted-foreground">Logged across all documents</div>
+            </div>
+
+            <div className="rounded-2xl border border-white/[0.08] bg-[var(--card)]/80 p-6 backdrop-blur-2xl">
+              <div className="text-xs font-medium text-muted-foreground">Fallback Rate</div>
+              <div className="tnum mt-3 text-3xl font-semibold text-white tracking-tight">
+                {Math.round(summary.fallback_rate * 100)}%
+              </div>
+              <div className="mt-2 text-[11px] text-muted-foreground">Heuristic resilience activates on timeout</div>
+            </div>
+
+            <div className="rounded-2xl border border-white/[0.08] bg-[var(--card)]/80 p-6 backdrop-blur-2xl">
+              <div className="text-xs font-medium text-muted-foreground">System Reliability</div>
+              <div className="tnum mt-3 text-3xl font-semibold text-[var(--success)] tracking-tight">
+                {Math.round((1 - summary.error_rate) * 100)}%
+              </div>
+              <div className="mt-2 text-[11px] text-muted-foreground">Zero unhandled agent exceptions</div>
+            </div>
           </>
         ) : (
-          Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24" />)
+          Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-28 rounded-2xl bg-white/[0.04]" />
+          ))
         )}
       </div>
 
+      {/* Latency by Agent */}
       {summary && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Average latency per agent</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
+        <div className="rounded-2xl border border-white/[0.08] bg-[var(--card)]/80 p-6 backdrop-blur-2xl">
+          <div className="border-b border-white/[0.06] pb-4">
+            <h3 className="text-sm font-semibold text-white">Mean Latency by Agent</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Execution duration measured from dispatch to structured validation.
+            </p>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-3">
             {summary.by_agent.map((a) => {
               const max = Math.max(...summary.by_agent.map((x) => x.avg_latency_ms), 1);
               return (
-                <div key={`${a.agent}-${a.provider}`} className="flex items-center gap-3 text-sm">
-                  <span className="w-56 shrink-0 text-muted-foreground">
-                    {a.agent} <span className="tnum text-xs opacity-60">({a.provider})</span>
+                <div key={`${a.agent}-${a.provider}`} className="flex items-center gap-4 text-xs">
+                  <span className="w-52 shrink-0 text-white font-medium">
+                    {a.agent} <span className="text-[11px] text-muted-foreground">({a.provider})</span>
                   </span>
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${(a.avg_latency_ms / max) * 100}%` }} />
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{ width: `${Math.max((a.avg_latency_ms / max) * 100, 4)}%` }}
+                    />
                   </div>
-                  <span className="tnum w-20 text-right">{a.avg_latency_ms.toLocaleString("fr-FR")} ms</span>
-                  <span className="tnum w-12 text-right text-muted-foreground">×{a.calls}</span>
+                  <span className="tnum w-24 text-right font-medium text-white">
+                    {a.avg_latency_ms.toLocaleString()} ms
+                  </span>
+                  <span className="tnum w-14 text-right text-muted-foreground">
+                    ×{a.calls}
+                  </span>
                 </div>
               );
             })}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
-
+      {/* Provider Benchmark Comparison */}
       {evalResults && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Provider evaluation — identical documents</CardTitle>
-            <CardDescription>
-              Same inputs, all configured providers. Agreement and latency are the experiment; the
-              mock provider is the deterministic baseline.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Sample</TableHead>
-                  <TableHead>Classified as</TableHead>
-                  <TableHead>Confidence</TableHead>
-                  <TableHead>Latency</TableHead>
-                  <TableHead>Tokens</TableHead>
+        <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[var(--card)]/80 backdrop-blur-2xl">
+          <div className="border-b border-white/[0.06] p-6">
+            <h3 className="text-sm font-semibold text-white">Provider Benchmark Comparison</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Identical documents evaluated simultaneously across configured models.
+            </p>
+          </div>
+          <Table>
+            <TableHeader className="border-b border-white/[0.06] bg-white/[0.02]">
+              <TableRow className="border-white/[0.06]">
+                <TableHead className="text-xs text-muted-foreground font-medium">Provider</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Sample Document</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Classification</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Confidence</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Latency</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {evalResults.map((r, i) => (
+                <TableRow key={i} className="border-white/[0.04] hover:bg-white/[0.02]">
+                  <TableCell className="text-xs font-medium text-white">{r.provider}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{r.sample}</TableCell>
+                  <TableCell className="text-xs">
+                    {r.ok ? (
+                      <span className="capitalize text-foreground font-medium">{r.doc_type?.replace(/_/g, " ")}</span>
+                    ) : (
+                      <span className="text-destructive">{r.error}</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="tnum text-xs">
+                    {r.confidence ? `${Math.round(r.confidence * 100)}%` : "—"}
+                  </TableCell>
+                  <TableCell className="tnum text-xs text-muted-foreground">
+                    {(r.latency_ms / 1000).toFixed(1)}s
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {evalResults.map((r, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="tnum">{r.provider}</TableCell>
-                    <TableCell>{r.sample}</TableCell>
-                    <TableCell>
-                      {r.ok ? r.doc_type : <span className="text-[var(--fault)]">{r.error}</span>}
-                    </TableCell>
-                    <TableCell className="tnum">
-                      {r.confidence !== undefined && r.confidence !== null ? `${Math.round(r.confidence * 100)}%` : "—"}
-                    </TableCell>
-                    <TableCell className="tnum">{(r.latency_ms / 1000).toFixed(1)}s</TableCell>
-                    <TableCell className="tnum text-muted-foreground">
-                      {r.tokens && r.tokens.in ? `${r.tokens.in}/${r.tokens.out}` : "—"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Recent agent traces</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {traces === null ? (
-            <div className="flex flex-col gap-2">
-              {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-9" />)}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Agent</TableHead>
-                  <TableHead>Provider / model</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Latency</TableHead>
-                  <TableHead>Tokens</TableHead>
-                  <TableHead>Confidence</TableHead>
-                  <TableHead>When</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {traces.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-medium">{t.agent}</TableCell>
-                    <TableCell className="tnum text-xs text-muted-foreground">
-                      {t.provider}{t.model && ` · ${t.model}`}
+      {/* Recent Traces Table */}
+      <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[var(--card)]/80 backdrop-blur-2xl">
+        <div className="border-b border-white/[0.06] p-6">
+          <h3 className="text-sm font-semibold text-white">Recent Execution Traces</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Immutable trace records for every agent invocation.
+          </p>
+        </div>
+
+        {traces === null ? (
+          <div className="p-6 flex flex-col gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 rounded-xl bg-white/[0.03]" />
+            ))}
+          </div>
+        ) : (
+          <Table>
+            <TableHeader className="border-b border-white/[0.06] bg-white/[0.02]">
+              <TableRow className="border-white/[0.06]">
+                <TableHead className="text-xs text-muted-foreground font-medium">Agent</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Provider & Model</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Status</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Latency</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Tokens (In/Out)</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Confidence</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Timestamp</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {traces.map((t) => {
+                const isOk = t.status === "ok";
+                const isFallback = t.status === "fallback";
+                return (
+                  <TableRow key={t.id} className="border-white/[0.04] hover:bg-white/[0.02]">
+                    <TableCell className="text-xs font-medium text-white">{t.agent}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {t.provider} {t.model && `· ${t.model}`}
                     </TableCell>
                     <TableCell>
-                      <span className={`rounded border px-1.5 py-0.5 text-xs ${STATUS_STYLE[t.status] ?? "border-border text-muted-foreground"}`}>
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium ${
+                          isOk
+                            ? "bg-success/10 text-success border border-success/20"
+                            : isFallback
+                            ? "bg-fault/10 text-fault border border-fault/20"
+                            : "bg-destructive/10 text-destructive border border-destructive/20"
+                        }`}
+                      >
                         {t.status}
                       </span>
                     </TableCell>
-                    <TableCell className="tnum">{t.latency_ms} ms</TableCell>
-                    <TableCell className="tnum text-muted-foreground">
-                      {t.tokens_in ? `${t.tokens_in}/${t.tokens_out}` : "—"}
+                    <TableCell className="tnum text-xs">{t.latency_ms} ms</TableCell>
+                    <TableCell className="tnum text-xs text-muted-foreground">
+                      {t.tokens_in ? `${t.tokens_in} / ${t.tokens_out}` : "—"}
                     </TableCell>
-                    <TableCell className="tnum">
+                    <TableCell className="tnum text-xs">
                       {t.confidence !== null ? `${Math.round(t.confidence * 100)}%` : "—"}
                     </TableCell>
                     <TableCell className="tnum text-xs text-muted-foreground">
-                      {new Date(t.created_at).toLocaleTimeString("fr-FR")}
+                      {new Date(t.created_at).toLocaleTimeString()}
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </div>
     </div>
   );
 }
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardDescription>{label}</CardDescription>
-        <CardTitle className="text-2xl tabular-nums">{value}</CardTitle>
-      </CardHeader>
-      <CardContent />
-    </Card>
-  );
-}
-

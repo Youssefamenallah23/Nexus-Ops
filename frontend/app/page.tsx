@@ -1,196 +1,76 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowRight, Bot, FileSearch, Gauge, Microscope, ShieldCheck, Workflow } from "lucide-react";
-import { HubCanvas } from "@/components/landing/grid-canvas";
+import dynamic from "next/dynamic";
+import { useState } from "react";
+import { useReducedMotionPreference } from "@/hooks/use-reduced-motion";
+import { Box, FileSearch, Bot, Workflow, ShieldCheck, Microscope, Gauge, Lock, Pause, Play, ChevronDown } from "lucide-react";
 import { PipelineFlow } from "@/components/landing/pipeline-flow";
 import { ImpactChart } from "@/components/landing/impact-chart";
-import { Magnetic, staggerContainer, staggerItem } from "@/components/landing/magnetic";
+import { InteractivePipelineDemo } from "@/components/landing/interactive-pipeline-demo";
+import { LandingMotion } from "@/components/landing/landing-motion";
 
+const HubCanvas = dynamic(() => import("@/components/landing/grid-canvas").then(m => m.HubCanvas), { ssr: false });
 const FEATURES = [
-  { Icon: FileSearch, title: "Document intelligence", desc: "PDFs, quotes, intervention reports classified and extracted into validated, structured fields â€” with confidence on every value." },
-  { Icon: Bot, title: "Knowledge copilot", desc: "Ask anything. Answers come only from approved documents you can access, always with citations." },
-  { Icon: Workflow, title: "n8n automation", desc: "HMAC-signed webhooks fire on approval: notifications, task routing, reminders. Every execution is recorded." },
-  { Icon: ShieldCheck, title: "Human in the loop", desc: "The graph checkpoint waits. A person approves before anything consequential happens â€” enforced server-side." },
-  { Icon: Microscope, title: "Agent observatory", desc: "Every agent call traced: provider, model, tokens, latency, confidence. Two providers compared on identical documents." },
-  { Icon: Gauge, title: "Measurable impact", desc: "A transparent time-saved simulator with published assumptions â€” never fabricated business results." },
+  { Icon: FileSearch, title: "Document intelligence", desc: "Quotes, invoices, and technical reports become structured records with field-level confidence." },
+  { Icon: Bot, title: "Answers with a source", desc: "Ask the copilot about verified documents. Follow every answer back to its citations." },
+  { Icon: Workflow, title: "Connected workflows", desc: "Signed webhooks dispatch approved work to n8n for automated routing and tracking." },
+  { Icon: ShieldCheck, title: "Your decision comes first", desc: "The workflow pauses before consequential actions. Review, correct, or approve to continue." },
+  { Icon: Microscope, title: "Every agent, observable", desc: "Inspect token usage, latency, and provider comparisons across individual model calls." },
+  { Icon: Gauge, title: "Understand the impact", desc: "Explore time and cost projections with visible formulas and adjustable assumptions." },
 ];
 
-const fadeUp = {
-  initial: { opacity: 0, y: 24 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: "-80px" },
-  transition: { duration: 0.6, ease: "easeOut" as const },
-};
-
 export default function LandingPage() {
+  const [paused, setPaused] = useState(true);
+  const reducedMotion = useReducedMotionPreference();
   return (
-    <main className="relative min-h-svh overflow-x-clip">
-      {/* ================= hero ================= */}
-      <section className="relative flex min-h-svh flex-col">
-        <div className="absolute inset-0 z-0">
-          <HubCanvas />
+    <main className="landing-page">
+      <LandingMotion />
+      <header className="landing-nav">
+        <div className="landing-container nav-inner">
+          <Link href="/" className="wordmark" aria-label="Nexus Ops home"><Box aria-hidden="true" /><span>Nexus <span className="wordmark-light">Ops</span></span></Link>
+          <nav aria-label="Main navigation"><a href="#how-it-works">The platform</a><a href="#live-simulator">Live demo</a><Link href="/login" className="nav-signin">Sign in</Link></nav>
         </div>
-        <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-[#02070A]/70 via-transparent to-[#02070A]" />
+      </header>
 
-
-        <nav className="z-20 flex items-center justify-between px-6 py-5 md:px-12">
-          <span className="text-lg font-semibold tracking-tight">
-            NEXUS<span className="text-primary"> OPS</span>
-          </span>
-          <Link href="/login"
-            className="rounded-lg border border-border px-4 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-foreground">
-            Sign in
-          </Link>
-        </nav>
-
-        <div className="z-20 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center px-6 text-center">
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-            className="tnum mb-4 text-xs tracking-widest text-muted-foreground">
-            AI WORKFLOW & OPERATIONS HUB
-          </motion.p>
-          <motion.h1 initial={{ opacity: 0, y: 24, filter: "blur(8px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            transition={{ delay: 0.35, duration: 0.8 }}
-            className="max-w-3xl text-4xl font-semibold leading-tight tracking-tighter drop-shadow-[0_2px_20px_rgba(2,7,10,0.9)] md:text-6xl">
-            Repetitive operations,
-            <br />
-            <span className="text-primary">processed by agents.</span>
-            <br />
-            Approved by humans.
-          </motion.h1>
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55, duration: 0.7 }}
-            className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
-            NEXUS OPS turns supplier quotes, intervention reports and purchase requests
-            into classified, validated, automatically routed workflows - with a person
-            approving every consequential action.
-          </motion.p>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.75 }} className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <Magnetic>
-              <Link href="/login"
-                className="group inline-flex items-center gap-2 rounded-lg bg-primary px-7 py-3 text-sm font-semibold text-[#02070a] shadow-[0_0_36px_-8px_rgba(2,151,222,0.7)] transition-shadow hover:shadow-[0_0_48px_-6px_rgba(2,151,222,0.9)]">
-                Open the hub
-                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </Magnetic>
-            <Magnetic strength={0.25}>
-              <a href="#how-it-works"
-                className="inline-flex items-center gap-2 rounded-lg border border-border bg-[#02070a]/60 px-6 py-3 text-sm text-muted-foreground backdrop-blur transition-colors hover:border-primary hover:text-foreground">
-                See how it works
-              </a>
-            </Magnetic>
-          </motion.div>
+      <section className="landing-hero">
+        <div className="hero-copy landing-container">
+          <h1 data-hero-enter>Operations.<br />Under your control.</h1>
+          <p data-hero-enter>Intelligent agents handle the paperwork. You make the decisions.</p>
+          <div data-hero-enter className="hero-actions"><Link href="/login" className="premium-button">Open your workspace</Link><a href="#live-simulator" className="text-action">Explore the live demo</a></div>
         </div>
-
-        <div className="tnum flex flex-wrap items-center justify-center gap-8 pb-8 text-xs text-muted-foreground">
-          <span>MISTRAL LARGE 4</span>
-          <span>GEMINI 3.5 FLASH-LITE</span>
-          <span className="text-[var(--fault)]">HUMAN-IN-THE-LOOP</span>
-          <span>PGVECTOR</span>
+        <div className="hero-object">
+          <HubCanvas paused={paused} />
         </div>
+        <div className="hero-bottom landing-container"><span>Drag to rotate. Scroll to explore.</span><a href="#how-it-works" aria-label="Explore the platform"><ChevronDown aria-hidden="true" /></a><button type="button" disabled={Boolean(reducedMotion)} title={reducedMotion ? "Auto-rotation is disabled by your reduced-motion preference." : undefined} aria-pressed={!paused && !reducedMotion} aria-label={paused ? "Start auto-rotation" : "Pause auto-rotation"} onClick={() => setPaused(!paused)}>{paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}<span>{reducedMotion ? "Motion off" : paused ? "Auto-rotate" : "Pause"}</span></button></div>
       </section>
 
-      {/* stats */}
-      <section className="mx-auto max-w-5xl px-6 py-20">
-        <motion.div variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }} className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-4">
-          {[
-            ["6", "specialized agents"],
-            ["5", "document types routed"],
-            ["100%", "audited decisions"],
-            ["384-dim", "semantic search"],
-          ].map(([v, l]) => (
-            <div key={l} className="bg-card p-6 text-center">
-              <div className="tnum text-3xl font-semibold text-primary">{v}</div>
-              <div className="mt-1 text-sm text-muted-foreground">{l}</div>
-            </div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* pipeline */}
-      <section id="how-it-works" className="mx-auto max-w-6xl px-6 py-20">
-        <motion.div {...fadeUp}>
-          <h2 className="text-3xl font-semibold tracking-tight">How a document becomes a workflow</h2>
-          <p className="mt-2 max-w-2xl text-muted-foreground">
-            Six stages, six checkpoints, one human gate. This is the actual LangGraph
-            pipeline â€” checkpointed in Postgres, resumed on approval.
-          </p>
-        </motion.div>
-        <motion.div {...fadeUp} transition={{ delay: 0.15 }} className="mt-10 rounded-xl border border-border bg-card/60 p-6">
+      <section id="how-it-works" className="landing-section pipeline-section">
+        <div className="landing-container">
+          <div className="section-heading"><h2>From document<br />to done.</h2><p>Quotes. Intervention reports. Maintenance diagnostics. One traceable path from extraction to human approval.</p></div>
           <PipelineFlow />
-        </motion.div>
-      </section>
-
-      {/* features */}
-      <section className="mx-auto max-w-6xl px-6 py-20">
-        <motion.h2 {...fadeUp} className="text-3xl font-semibold tracking-tight">Everything it does
-        </motion.h2>
-        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f, i) => (
-            <motion.div
-              key={f.title} variants={staggerItem}
-              className="group rounded-lg border border-border bg-card p-6 transition-colors hover:border-primary/50"
-            >
-              <f.Icon className="size-6 text-primary transition-transform group-hover:scale-110" />
-              <h3 className="mt-4 font-semibold">{f.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
-            </motion.div>
-          ))}
+          <div className="pipeline-caption"><ShieldCheck aria-hidden="true" /><p>State is saved at every checkpoint. Work resumes when a manager authorizes it.</p></div>
         </div>
       </section>
 
-
-      {/* impact chart */}
-      <section className="mx-auto max-w-5xl px-6 py-20">
-        <motion.div {...fadeUp}>
-          <h2 className="text-3xl font-semibold tracking-tight">The business case, plotted</h2>
-          <p className="mt-2 max-w-2xl text-muted-foreground">
-            The dashboard computes estimated hours saved with a published formula and
-            clearly labeled assumptions â€” the same simulator runs live in the app.
-          </p>
-        </motion.div>
-        <motion.div {...fadeUp} transition={{ delay: 0.15 }} className="mt-10 rounded-xl border border-border bg-card/60 p-6">
-          <ImpactChart />
-        </motion.div>
-      </section>
-      {/* governance strip */}
-      <section className="mx-auto max-w-5xl px-6 py-20">
-        <motion.div {...fadeUp} className="rounded-xl border border-[var(--fault)]/30 bg-[var(--fault)]/5 p-8 text-center">
-          <ShieldCheck className="mx-auto size-8 text-[var(--fault)]" />
-          <h2 className="mt-4 text-2xl font-semibold tracking-tight">Built responsible by default</h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Role-based access enforced server-side. Every AI suggestion, edit, approval
-            and automation logged. Original files retained. Simulated numbers labeled as
-            simulated. Secrets never leave the environment.
-          </p>
-        </motion.div>
+      <section id="live-simulator" className="landing-section demo-section">
+        <div className="landing-container">
+          <div className="section-heading"><h2>Put the pipeline<br />through its paces.</h2><p>Choose an operational payload. Watch the agents work, then take over at the authorization gate.</p></div>
+          <div className="product-stage"><div className="product-stage-heading"><Box aria-hidden="true" /><span>Nexus Ops</span><span>Interactive demonstration</span></div><InteractivePipelineDemo /></div>
+        </div>
       </section>
 
-      {/* final CTA */}
-      <section className="relative mx-auto max-w-5xl px-6 pb-24 text-center">
-        <motion.div {...fadeUp}>
-          <h2 className="text-3xl font-semibold tracking-tight">See it with real data</h2>
-          <p className="mt-3 text-muted-foreground">
-            Seeded synthetic operations: 22 documents, 3 projects, live agents.
-          </p>
-          <Link
-            href="/login"
-            className="group mt-8 inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-3 text-sm font-medium text-[#02070a] transition-transform hover:scale-[1.03]"
-          >
-            Launch NEXUS OPS
-            <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-          </Link>
-        </motion.div>
+      <section className="landing-section capabilities-section">
+        <div className="landing-container capabilities-layout">
+          <div className="capabilities-title"><h2>Intelligence you<br />can inspect.</h2><p>Built for operations where every decision needs a reason.</p><Link href="/login" className="text-action">Explore the workspace</Link></div>
+          <div className="capability-list">{FEATURES.map(({ Icon, title, desc }) => <article className="capability-row" key={title}><Icon aria-hidden="true" /><div><h3>{title}</h3><p>{desc}</p></div></article>)}</div>
+        </div>
       </section>
 
-      <footer className="border-t border-border py-8 text-center text-xs text-muted-foreground">
-        NEXUS OPS â€” portfolio project. All data is synthetic. Nothing here represents any real company.
-      </footer>
+      <section className="landing-section impact-section"><div className="landing-container"><div className="section-heading"><h2>Make the impact<br />measurable.</h2><p>Compare manual and agent-assisted processing. Projections are simulated, with the assumptions in view.</p></div><div className="impact-stage"><ImpactChart /></div></div></section>
+
+      <section className="landing-section governance-section"><div className="landing-container governance-inner"><Lock aria-hidden="true" /><h2>Authority stays<br />with your team.</h2><p>Role-based access. Signed webhooks. Recorded audit events. Original files retained.</p><Link href="/login" className="premium-button">Access the platform</Link><p className="demo-disclosure">Explore seeded documents, the copilot, and agent traces using synthetic demonstration data.</p></div></section>
+      <footer className="landing-footer"><div className="landing-container"><Link href="/" className="wordmark"><Box aria-hidden="true" /><span>Nexus Ops</span></Link><p>Autonomous operations. Human oversight.</p><span>Synthetic demonstration data / Apache 2.0</span></div></footer>
     </main>
   );
 }
-
-
-

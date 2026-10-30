@@ -2,27 +2,21 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/status-badge";
+import { TiltCard } from "@/components/landing/tilt-card";
 import { api, type Analytics, type DocumentRow } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { ArrowRight, Sparkles, Clock, AlertCircle, CheckCircle2 } from "lucide-react";
 
 const DOC_TYPE_LABELS: Record<string, string> = {
-  supplier_quote: "Supplier quote",
-  purchase_request: "Purchase request",
-  intervention_report: "Intervention report",
-  maintenance_report: "Maintenance report",
-  meeting_minutes: "Meeting minutes",
-  other: "Other",
+  supplier_quote: "Supplier Quote",
+  purchase_request: "Purchase Request",
+  intervention_report: "Intervention Report",
+  maintenance_report: "Maintenance Report",
+  meeting_minutes: "Meeting Minutes",
+  other: "Document",
 };
 
 export default function OverviewPage() {
@@ -41,102 +35,182 @@ export default function OverviewPage() {
   const sim = stats?.time_saved_simulator;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">
-          Hello, {user?.name.split(" ")[0]}
-        </h2>
-        <p className="text-sm text-muted-foreground">Here is what needs your attention today.</p>
+    <div className="flex flex-col gap-8">
+      {/* Top Welcome Header */}
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-3xl font-semibold tracking-tight text-white">
+            Your operations, {user?.name.split(" ")[0]}
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Overview of autonomous operations and items requiring authorization.
+          </p>
+        </div>
+
+        <div className="mt-4 sm:mt-0">
+          <Link
+            href="/app/documents"
+            className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-xs font-semibold text-black shadow-[0_4px_16px_var(--highlight)] transition-colors hover:bg-white/90 hover:scale-[1.02]"
+          >
+            Upload Document
+            <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 divide-border sm:grid-cols-4 sm:divide-x">
+      {/* 4 Apple-Style Frosted Metric Cards */}
+      <div className="overview-metrics grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {stats ? (
           <>
-            <StatCell label="Pending review" value={pending} tone={pending > 0 ? "fault" : "quiet"}
-              hint={`${stats.documents.total} documents total`} />
-            <StatCell label="Overdue tasks" value={overdue} tone={overdue > 0 ? "fault" : "quiet"}
-              hint={`${stats.tasks.by_status.completed ?? 0} completed`} />
-            <StatCell label="Automation rate"
-              value={`${Math.round(stats.documents.straight_through_rate * 100)}%`} tone="voltage"
-              hint="processed with human review" />
-            <StatCell label="Hours saved / year" value={saved.toLocaleString("fr-FR")} tone="voltage"
-              hint="simulated — see analytics" />
+            <TiltCard
+              maxTilt={5}
+              glowColor={pending > 0 ? "var(--amber-wash)" : "var(--highlight)"}
+              className={`p-6 ${
+                pending > 0 ? "border-[var(--fault)]/40 bg-[var(--checkpoint-surface)]/80" : ""
+              }`}
+            >
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span className="font-medium">Pending Review</span>
+                <AlertCircle className={`size-4 ${pending > 0 ? "text-[var(--fault)]" : "text-muted-foreground"}`} />
+              </div>
+              <div className={`tnum mt-3 text-4xl font-semibold tracking-tight ${pending > 0 ? "text-[var(--fault)]" : "text-white"}`}>
+                {pending}
+              </div>
+              <div className="mt-2 text-[11px] text-muted-foreground">{stats.documents.total} documents tracked</div>
+            </TiltCard>
+
+            <TiltCard maxTilt={5} className="p-6">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span className="font-medium">Overdue Tasks</span>
+                <Clock className="size-4 text-muted-foreground" />
+              </div>
+              <div className={`tnum mt-3 text-4xl font-semibold tracking-tight ${overdue > 0 ? "text-[var(--fault)]" : "text-white"}`}>
+                {overdue}
+              </div>
+              <div className="mt-2 text-[11px] text-muted-foreground">
+                {stats.tasks.by_status.completed ?? 0} successfully routed
+              </div>
+            </TiltCard>
+
+            <TiltCard maxTilt={5} className="p-6">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span className="font-medium">Review completion</span>
+                <Sparkles className="size-4 text-primary" />
+              </div>
+              <div className="tnum mt-3 text-4xl font-semibold tracking-tight text-white">
+                {Math.round(stats.documents.straight_through_rate * 100)}%
+              </div>
+              <div className="mt-2 text-[11px] text-muted-foreground">Approved or rejected documents</div>
+            </TiltCard>
+
+            <TiltCard maxTilt={5} className="p-6">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span className="font-medium">Hours Saved</span>
+                <CheckCircle2 className="size-4 text-[var(--success)]" />
+              </div>
+              <div className="tnum mt-3 text-4xl font-semibold tracking-tight text-white">
+                {saved.toLocaleString()}
+              </div>
+              <div className="mt-2 text-[11px] text-muted-foreground">Annual baseline model</div>
+            </TiltCard>
           </>
         ) : (
-          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)
+          Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-2xl bg-white/[0.04]" />
+          ))
         )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Latest documents</CardTitle>
-            <CardDescription>Most recent uploads and their review status.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
+      {/* Main Grid: Recent Documents & Simulator */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Recent Documents Card */}
+        <TiltCard maxTilt={3} className="lg:col-span-2 p-6">
+          <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
+            <div>
+              <h3 className="text-sm font-semibold text-white">Recent Documents</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Ingested operations files and validation status.
+              </p>
+            </div>
+            <Link
+              href="/app/documents"
+              className="shrink-0 whitespace-nowrap text-xs font-medium text-primary hover:underline"
+            >
+              View all
+            </Link>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2.5">
             {(docs ?? []).slice(0, 6).map((d) => (
-              <Link key={d.id} href={`/documents/${d.id}`}
-                className="flex items-center justify-between rounded-lg border p-3 text-sm hover:bg-muted/50">
-                <div className="min-w-0">
-                  <div className="truncate font-medium">{d.filename}</div>
-                  <div className="text-xs text-muted-foreground">
+              <Link
+                key={d.id}
+                href={`/app/documents/${d.id}`}
+                className="group flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5 text-xs transition-colors hover:bg-white/[0.05] hover:border-white/[0.12]"
+              >
+                <div className="min-w-0 pr-4">
+                  <div className="truncate font-medium text-white group-hover:text-primary transition-colors">
+                    {d.filename}
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-muted-foreground">
                     {DOC_TYPE_LABELS[d.doc_type] ?? d.doc_type} · {d.uploader_name}
                   </div>
                 </div>
                 <StatusBadge status={d.status} />
               </Link>
             ))}
+
             {docs && docs.length === 0 && (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                No documents yet — upload your first one.
+              <p className="py-8 text-center text-xs text-muted-foreground">
+                No documents uploaded yet.
               </p>
             )}
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" size="sm" render={<Link href="/documents" />}>
-              View all documents
-            </Button>
-          </CardFooter>
-        </Card>
+          </div>
+        </TiltCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Time saved simulator</CardTitle>
-            <CardDescription>{sim?.disclaimer}</CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            <div className="flex flex-col gap-1 font-mono text-xs text-foreground">
-              <span>manual: {sim?.manual_minutes ?? "–"} min/doc</span>
-              <span>assisted: {sim?.assisted_minutes ?? "–"} min/doc</span>
-              <span>volume: {sim?.annual_volume ?? "–"} docs/year</span>
+        {/* Time Saved Card */}
+        <TiltCard maxTilt={4} className="p-6 flex flex-col justify-between">
+          <div>
+            <div className="border-b border-white/[0.06] pb-4">
+              <h3 className="text-sm font-semibold text-white">Time Saved Simulator</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">{sim?.disclaimer}</p>
             </div>
-            <p className="mt-3">
-              Formula: <code className="rounded bg-muted px-1">{sim?.formula}</code>
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" size="sm" render={<Link href="/analytics" />}>
-              Open simulator
-            </Button>
-          </CardFooter>
-        </Card>
+
+            <div className="mt-4 flex flex-col gap-2.5 text-xs">
+              <div className="flex justify-between rounded-lg bg-white/[0.03] p-2.5">
+                <span className="text-muted-foreground">Manual Processing:</span>
+                <span className="text-white font-medium">{sim?.manual_minutes ?? "–"} min / doc</span>
+              </div>
+              <div className="flex justify-between rounded-lg bg-white/[0.03] p-2.5">
+                <span className="text-muted-foreground">Agent Assisted:</span>
+                <span className="text-primary font-medium">{sim?.assisted_minutes ?? "–"} min / doc</span>
+              </div>
+              <div className="flex justify-between rounded-lg bg-white/[0.03] p-2.5">
+                <span className="text-muted-foreground">Annual Volume:</span>
+                <span className="text-white font-medium">{sim?.annual_volume ?? "–"} docs / year</span>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 text-[11px] text-muted-foreground">
+              <span className="text-white font-medium">Formula:</span>
+              <code className="mt-1 block font-mono text-[10px] text-muted-foreground break-all">{sim?.formula}</code>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <Link
+              href="/app/analytics"
+              data-slot="button"
+              className={buttonVariants({
+                variant: "outline",
+                size: "sm",
+                className: "w-full rounded-full border-white/[0.1] bg-white/[0.04] text-xs text-white hover:bg-white/[0.08]",
+              })}
+            >
+              Open Detailed Simulator
+            </Link>
+          </div>
+        </TiltCard>
       </div>
     </div>
   );
 }
-
-function StatCell({ label, value, hint, tone }: {
-  label: string; value: string | number; hint: string; tone: "fault" | "voltage" | "quiet";
-}) {
-  const toneClass =
-    tone === "fault" ? "text-[var(--fault)]" : tone === "voltage" ? "text-[var(--voltage)]" : "text-foreground";
-  return (
-    <div className="flex flex-col gap-1 border-b border-border px-5 py-4 sm:border-b-0">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={`tnum text-3xl font-medium leading-none ${toneClass}`}>{value}</span>
-      <span className="text-xs text-muted-foreground/70">{hint}</span>
-    </div>
-  );
-}
-
-

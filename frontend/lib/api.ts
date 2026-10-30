@@ -1,4 +1,6 @@
-export const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Keep local session cookies on the same hostname as the browser preview.
+export const API = process.env.NEXT_PUBLIC_API_URL ??
+  `http://${typeof window === "undefined" ? "localhost" : window.location.hostname}:8000`;
 
 export class ApiError extends Error {
   status: number;
@@ -9,15 +11,23 @@ export class ApiError extends Error {
 }
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
-    credentials: "include",
-    headers: init.body instanceof FormData ? undefined : { "Content-Type": "application/json" },
-    ...init,
-  });
+  const headers = new Headers(init.headers);
+  if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${API}${path}`, { credentials: "include", ...init, headers });
+  } catch (error) {
+    if (init.signal?.aborted) throw error;
+    throw new ApiError(0, `Cannot reach the API at ${API}. Check that the backend is running, then try again.`);
+  }
   if (!res.ok) {
     let detail = res.statusText;
     try {
-      detail = (await res.json()).detail ?? detail;
+      const body = await res.json();
+      if (typeof body.detail === "string") detail = body.detail;
+      else if (Array.isArray(body.detail)) detail = body.detail.map((issue: { msg?: string }) => issue.msg ?? "Invalid input").join("; ");
     } catch { /* non-JSON error body */ }
     throw new ApiError(res.status, detail);
   }
@@ -36,6 +46,9 @@ export type DocumentDetailDto = DocumentRow & {
   text_content: string;
   extractions: { revision: number; data: Record<string, string | number | null>; missing_fields: string[]; confidence: number; created_by: string; created_at: string }[];
   reviewer_name: string | null;
+  qa_issues: string[];
+  qa_ok: boolean;
+  original_file_available: boolean;
 };
 export type TaskRow = {
   id: string; title: string; description: string; status: string; priority: string;

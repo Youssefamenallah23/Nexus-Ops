@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
 
 from .db import Base, engine  # noqa: E402
-from .routers import auth, documents, ops  # noqa: E402
+from .routers import auth, copilot, documents, ops  # noqa: E402
 
 app = FastAPI(title="NEXUS OPS API", version="0.1.0")
 
@@ -22,6 +22,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(documents.router)
 app.include_router(ops.router)
+app.include_router(copilot.router)
 
 
 @app.on_event("startup")

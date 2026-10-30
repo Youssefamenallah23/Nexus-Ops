@@ -157,6 +157,10 @@ def approve_document(doc_id: str, db: DBSession = Depends(get_db),
     task = create_task_for_document(db, d, user)
     audit(db, actor=user, action="extraction.approved", entity_type="document", entity_id=d.id)
     db.commit()
+    # Approved documents become copilot knowledge.
+    from ..services.rag import ingest_document
+
+    ingest_document(db, d)
     return {"ok": True, "task_id": task.id, "task_department": task.department}
 
 

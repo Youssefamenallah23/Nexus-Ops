@@ -162,7 +162,15 @@ def run():
     db.add(AuditEvent(actor_label="system", action="seed.completed", entity_type="system",
                       detail={"documents": len(DOCS)}))
     db.commit()
-    print(f"Seeded {len(USERS)} users, {len(PROJECTS)} projects, {len(DOCS)} documents.")
+
+    # Ingest approved documents into the copilot knowledge base.
+    from .services.rag import ingest_document
+
+    ingested = sum(ingest_document(db, d) for d in db.query(Document).filter(Document.status == "approved"))
+    db.add(AuditEvent(actor_label="system", action="copilot.indexed", entity_type="copilot",
+                      detail={"chunks": ingested}))
+    db.commit()
+    print(f"Seeded {len(USERS)} users, {len(PROJECTS)} projects, {len(DOCS)} documents, {ingested} copilot chunks.")
 
 
 if __name__ == "__main__":

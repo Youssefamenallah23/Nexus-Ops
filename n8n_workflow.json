@@ -1,0 +1,61 @@
+{
+  "name": "NEXUS OPS - Operations Events",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nexus-ops",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "a1b2c3d4-0000-4000-8000-000000000001",
+      "name": "NEXUS OPS Event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-300, 0],
+      "webhookId": "8f2c1e9a-4b7d-4c3e-9f1a-2d6e8b0c5a77"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const crypto = require('crypto');\n\nconst SECRET = 'nexus-dev-secret';\ntry {\n  const rawBody = typeof $json.body === 'string' ? $json.body : JSON.stringify($json.body);\n  const headers = $json.headers || {};\n  const sig = headers['x-nexus-signature'] || '';\n  const expected = crypto.createHmac('sha256', SECRET).update(String(rawBody)).digest('hex');\n  let signature_valid = sig.length === expected.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));\n\n  let payload = {};\n  try { payload = JSON.parse(rawBody); } catch (e) { payload = $json.body || {}; }\n\n  const message = payload.workflow === 'task_reminder'\n    ? 'Reminder: task \"' + payload.title + '\" (' + payload.department + ') is overdue - due ' + payload.due_date\n    : 'Document \"' + payload.filename + '\" approved by human review - task routed to ' + payload.department;\n\n  return { json: { signature_valid, workflow: payload.workflow, message } };\n} catch (e) {\n  return { json: { signature_valid: false, error: String(e && e.message ? e.message : e) } };\n}"
+      },
+      "id": "a1b2c3d4-0000-4000-8000-000000000003",
+      "name": "Verify signature & format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-80, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0000-4000-8000-000000000004",
+      "name": "Respond to NEXUS OPS",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [140, 0]
+    }
+  ],
+  "connections": {
+    "NEXUS OPS Event": {
+      "main": [
+        [
+          { "node": "Verify signature & format", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Verify signature & format": {
+      "main": [
+        [
+          { "node": "Respond to NEXUS OPS", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

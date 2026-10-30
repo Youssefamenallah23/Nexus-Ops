@@ -40,7 +40,9 @@ def emit(db, *, workflow_type: str, entity_type: str, entity_id: str | None,
         try:
             resp = httpx.post(url, content=body,
                               headers={
-                                  "Content-Type": "application/json",
+                                  # text/plain so n8n's webhook passes the raw bytes through
+                                  # (application/json gets parsed, breaking byte-level HMAC checks)
+                                  "Content-Type": "text/plain",
                                   "X-Nexus-Signature": _sign(body),
                               }, timeout=15)
             if 200 <= resp.status_code < 300:

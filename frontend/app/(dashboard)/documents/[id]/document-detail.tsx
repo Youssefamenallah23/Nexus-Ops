@@ -79,6 +79,10 @@ export function DocumentDetail() {
         </Button>
         <h2 className="text-lg font-semibold">{doc.filename}</h2>
         <StatusBadge status={doc.status} />
+        <a href={`${api}/documents/${doc.id}/file`} target="_blank" rel="noreferrer"
+          className="text-xs text-primary hover:underline">
+          original file ↓
+        </a>
         <span className="text-xs text-muted-foreground">
           {doc.doc_type.replace(/_/g, " ")}
           {doc.classification_confidence !== null && ` · ${Math.round(doc.classification_confidence * 100)}% confidence`}

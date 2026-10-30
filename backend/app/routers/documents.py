@@ -1,11 +1,13 @@
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.orm import Session as DBSession
 
-from ..auth import get_current_user, require_role
+from ..auth import get_current_user, rate_limit, require_role
+from ..config import get_settings
 from ..db import get_db
 from ..models import Document, Extraction, User, audit
 from ..schemas import DocumentDetail, DocumentOut
@@ -46,6 +48,7 @@ def upload_document(
     project_id: str | None = Form(None),
     db: DBSession = Depends(get_db),
     user: User = Depends(get_current_user),
+    _rl: None = Depends(rate_limit(max_requests=15, window_seconds=60)),
 ):
     raw = file.file.read()
     err = text_extract.validate_upload(file.filename, file.content_type or "", len(raw))
@@ -69,6 +72,14 @@ def upload_document(
     )
     db.add(doc)
     db.flush()
+
+    # Original file retention: keep the bytes on disk, path recorded in DB.
+    upload_dir = Path(get_settings().upload_dir) / str(doc.id)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    safe_name = Path(file.filename).name
+    stored = upload_dir / safe_name
+    stored.write_bytes(raw)
+    doc.file_path = str(stored)
 
     # Multi-agent pipeline: supervisor -> classification -> intelligence -> QA,
     # checkpointed before the automation agent (human approval gate).
@@ -125,6 +136,19 @@ def get_document(doc_id: str, db: DBSession = Depends(get_db), user: User = Depe
 
 class FieldEdit(BaseModel):
     data: dict
+
+
+@router.get("/{doc_id}/file")
+def download_document(doc_id: str, db: DBSession = Depends(get_db), user: User = Depends(get_current_user)):
+    """Serve the retained original file. Same authorization as reading the document."""
+    d = db.get(Document, _uuid(doc_id))
+    if not d:
+        raise HTTPException(404, "Document not found")
+    if not d.file_path or not Path(d.file_path).exists():
+        raise HTTPException(404, "Original file not retained (seeded documents have no file on disk).")
+    audit(db, actor=user, action="document.downloaded", entity_type="document", entity_id=d.id)
+    db.commit()
+    return FileResponse(d.file_path, filename=d.filename, media_type=d.mime_type or "application/octet-stream")
 
 
 @router.post("/{doc_id}/extraction", response_model=DocumentDetail)

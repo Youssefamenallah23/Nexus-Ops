@@ -11,6 +11,7 @@ os.environ["GOOGLE_API_KEY"] = ""
 
 import random
 
+from .auth import hash_password
 from .db import Base, SessionLocal, engine
 from .models import AuditEvent, Document, Extraction, Project, User, audit
 from .services import pipeline
@@ -115,8 +116,9 @@ def run():
     db.commit()
 
     users = {}
+    demo_password = hash_password("demo1234")  # documented in README + login page
     for email, name, role, dept in USERS:
-        u = User(email=email, name=name, role=role, department=dept)
+        u = User(email=email, name=name, role=role, department=dept, password_hash=demo_password)
         db.add(u)
         users[email] = u
     projects = {}

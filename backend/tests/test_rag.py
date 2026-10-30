@@ -1,4 +1,4 @@
-import pytest
+﻿import pytest
 
 from app.db import Base
 from app.models import Chunk, Document, Extraction
@@ -106,3 +106,4 @@ def test_answer_cites_sources():
     c = res["citations"][0]
     assert {"document_id", "filename", "excerpt", "score"} <= set(c)
     assert "r14" in res["answer"].lower() or res["citations"][0]["excerpt"]
+

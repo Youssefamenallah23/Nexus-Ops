@@ -4,6 +4,7 @@ import os
 os.environ.setdefault("GOOGLE_API_KEY", "")
 os.environ.setdefault("NVIDIA_API_KEY", "")
 os.environ["N8N_WEBHOOK_URL"] = ""  # workflow tests must run in mock mode
+os.environ["EMBEDDING_PROVIDER"] = "test"  # no model download in CI
 os.environ["DATABASE_URL"] = "sqlite://"
 
 import pytest  # noqa: E402
@@ -33,6 +34,16 @@ def override_get_db():
 app.dependency_overrides[get_db] = override_get_db
 
 
+@pytest.fixture(autouse=True)
+def reset_rate_limits():
+    """Rate-limit buckets are process-global; reset around every test."""
+    from app.auth import _rate_buckets
+
+    _rate_buckets.clear()
+    yield
+    _rate_buckets.clear()
+
+
 @pytest.fixture
 def client():
     return TestClient(app)
@@ -48,12 +59,16 @@ def seeded(client):
              "manager@nexus.test": ("manager", "Project Management"),
              "employee@nexus.test": ("employee", "Field Operations")}
     sessions = {}
+    from app.auth import hash_password
+
+    demo_pw = hash_password("demo1234")
     for email, (role, dept) in roles.items():
         if not db.query(User).filter(User.email == email).one_or_none():
-            db.add(User(email=email, name=email.split("@")[0].title(), role=role, department=dept))
+            db.add(User(email=email, name=email.split("@")[0].title(), role=role,
+                        department=dept, password_hash=demo_pw))
     db.commit()
     for email in roles:
-        r = client.post("/auth/login", json={"email": email})
+        r = client.post("/auth/login", json={"email": email, "password": "demo1234"})
         assert r.status_code == 200, r.text
         sessions[roles[email][0]] = r.cookies.get("nexus_session")
     db.close()

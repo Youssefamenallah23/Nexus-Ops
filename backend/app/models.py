@@ -11,7 +11,7 @@ from .db import Base
 # JSONB on Postgres, plain JSON elsewhere (in-memory SQLite for the test suite).
 JSONType = JSONB().with_variant(JSON(), "sqlite")
 # pgvector on Postgres; JSON fallback so the SQLite test suite can still create tables.
-EmbeddingType = Vector(768).with_variant(JSON(), "sqlite")
+EmbeddingType = Vector(384).with_variant(JSON(), "sqlite")
 
 
 
@@ -29,6 +29,7 @@ class User(Base):
     id: Mapped[str] = mapped_column(Uuid, primary_key=True, default=new_id)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
     name: Mapped[str] = mapped_column(String)
+    password_hash: Mapped[str | None] = mapped_column(String)  # pbkdf2; None = no login yet
     # ponytail: role as plain string; enum table only if roles grow past 3
     role: Mapped[str] = mapped_column(String, default="employee")  # administrator | manager | employee
     department: Mapped[str] = mapped_column(String, default="Administration")
@@ -61,6 +62,7 @@ class Document(Base):
     filename: Mapped[str] = mapped_column(String)
     mime_type: Mapped[str] = mapped_column(String)
     size_bytes: Mapped[int] = mapped_column(Integer)
+    file_path: Mapped[str | None] = mapped_column(String)  # retained original on disk
     text_content: Mapped[str] = mapped_column(Text, default="")
     # uploaded | needs_review | approved | rejected
     status: Mapped[str] = mapped_column(String, default="uploaded", index=True)

@@ -1,8 +1,6 @@
-"""Embedding provider abstraction. Gemini text-embedding when a key exists,
-deterministic hashing embedder offline — no torch, no surprises, stable tests.
-
-Both produce 768-dim vectors so the pgvector column never changes shape.
-"""
+"""Embedding providers. Default: fastembed (BAAI/bge-small-en-v1.5, 384-dim, ONNX on CPU).
+Gemini text-embedding-004 also emits 384 dims (Matryoshka), so pgvector stays one size.
+A deterministic hashing embedder remains for tests (EMBEDDING_PROVIDER=test)."""
 import hashlib
 import math
 
@@ -10,12 +8,13 @@ import httpx
 
 from ..config import get_settings
 
-EMBEDDING_DIMS = 768
+EMBEDDING_DIMS = 384
 EMBEDDING_MODEL = "text-embedding-004"
 
 
 class GeminiEmbedding:
     name = "gemini"
+    model = EMBEDDING_MODEL
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         s = get_settings()
@@ -38,11 +37,29 @@ class GeminiEmbedding:
         return [e["values"] for e in resp.json()["embeddings"]]
 
 
+class FastEmbedProvider:
+    """Local semantic embeddings via ONNX (bge-small-en-v1.5). Free, private, no torch."""
+
+    name = "fastembed"
+    model = "BAAI/bge-small-en-v1.5"
+
+    def __init__(self):
+        from fastembed import TextEmbedding
+
+        # ponytail: one process-wide model instance; load once, reuse
+        self._model = TextEmbedding(model_name=self.model)
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        vectors = [v.tolist() for v in self._model.embed(texts, batch_size=16)]
+        return vectors
+
+
 class HashingEmbedding:
-    """Deterministic feature-hashing embedder. Not semantic — good enough to demo
-    retrieval and tests offline; swap for a real model by setting GOOGLE_API_KEY."""
+    """Deterministic feature-hashing embedder for the test suite — NOT semantic.
+    Selected only when EMBEDDING_PROVIDER=test so CI never downloads a model."""
 
     name = "hashing"
+    model = "hashing-v1"
 
     def _one(self, text: str) -> list[float]:
         vec = [0.0] * EMBEDDING_DIMS
@@ -60,6 +77,9 @@ class HashingEmbedding:
 
 
 def get_embedding_provider():
+    if get_settings().embedding_provider == "test":
+        return HashingEmbedding()
     if get_settings().google_api_key:
         return GeminiEmbedding()
-    return HashingEmbedding()
+    return FastEmbedProvider()
+

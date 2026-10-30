@@ -15,13 +15,17 @@ const DEMO_ACCOUNTS = [
 
 export default function LoginPage() {
   const [email, setEmail] = useState("admin@nexus.test");
+  const [password, setPassword] = useState("demo1234");
   const [loading, setLoading] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      const user = await api<User>("/auth/login", { method: "POST", body: JSON.stringify({ email }) });
+      const user = await api<User>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
       toast.success(`Welcome, ${user.name}`);
       // Full reload so AuthProvider refetches /auth/me with the new session cookie.
       window.location.assign("/");
@@ -94,6 +98,16 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="password">Password</FieldLabel>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </Field>

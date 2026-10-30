@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { toast } from "sonner";
@@ -28,7 +28,7 @@ export default function LoginPage() {
       });
       toast.success(`Welcome, ${user.name}`);
       // Full reload so AuthProvider refetches /auth/me with the new session cookie.
-      window.location.assign("/");
+      window.location.assign("/app");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -49,7 +49,7 @@ export default function LoginPage() {
             NEXUS<span className="text-primary"> OPS</span>
           </h1>
           <p className="mt-4 max-w-md text-lg leading-relaxed text-muted-foreground">
-            Every document classified, validated and routed by AI — with a person
+            Every document classified, validated and routed by AI â€” with a person
             approving every consequential action.
           </p>
         </div>
@@ -65,7 +65,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           <h2 className="text-2xl font-semibold tracking-tight">Sign in</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Pick a demo terminal — no password in this sandbox.
+            Pick a demo terminal â€” no password in this sandbox.
           </p>
           <form onSubmit={submit} className="mt-8">
             <FieldGroup>
@@ -112,7 +112,7 @@ export default function LoginPage() {
                 />
               </Field>
               <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "Connecting…" : "Enter the hub"}
+                {loading ? "Connectingâ€¦" : "Enter the hub"}
               </Button>
             </FieldGroup>
           </form>
@@ -121,3 +121,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

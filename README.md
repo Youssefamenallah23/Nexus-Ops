@@ -22,7 +22,7 @@ multi-agent LangGraph orchestration (Milestone 5).
 | Frontend | Next.js App Router, TypeScript, Tailwind, shadcn/ui |
 | Backend | Python FastAPI, Pydantic, SQLAlchemy |
 | Database | PostgreSQL + pgvector (Docker) |
-| AI | Gemini `gemini-3.5-flash-lite` via a swappable provider interface, deterministic mock fallback |
+| AI | Provider abstraction: NVIDIA Mistral Large 4 first, Gemini `gemini-3.5-flash-lite` second, deterministic mock fallback — selected automatically by which API key is set |
 | Automation | n8n (running in Docker, wired in Milestone 4) |
 
 ## Quick start
@@ -75,9 +75,11 @@ Only administrators and managers can approve or reject documents (server-side en
 ## Engineering notes
 
 - **Provider abstraction**: `backend/app/services/llm.py` defines the provider interface;
-  `GeminiProvider` (structured JSON output) and `MockProvider` (deterministic heuristics,
-  no network) are interchangeable. The mock keeps the demo fully functional offline and
-  makes the test suite deterministic.
+  `NvidiaMistralProvider` (OpenAI-compatible, reasoning model — low effort, 4k token budget,
+  parallel classify+extract), `GeminiProvider` (structured JSON output) and `MockProvider`
+  (deterministic heuristics, no network) are interchangeable. If the real provider times out,
+  the pipeline falls back to the mock and logs it in the audit trail. The mock keeps the demo
+  fully functional offline and makes the test suite deterministic.
 - **Validation**: every LLM output passes a Pydantic schema before storage; invalid or
   partial outputs are salvaged field-by-field rather than dropped.
 - **Human in the loop**: consequential actions (approve → task creation) require a

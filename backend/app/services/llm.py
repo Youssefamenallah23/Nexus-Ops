@@ -40,6 +40,62 @@ def extract_prompt(text: str) -> str:
     )
 
 
+def _parse_json_loose(content: str) -> dict:
+    """Parse JSON out of an LLM reply, tolerating markdown fences and prose."""
+    content = content.strip()
+    if content.startswith("```"):
+        content = content.split("```", 2)[1]
+        if content.startswith("json"):
+            content = content[4:]
+        content = content.strip()
+    start, end = content.find("{"), content.rfind("}")
+    if start != -1 and end != -1:
+        content = content[start : end + 1]
+    return json.loads(content)
+
+
+class NvidiaMistralProvider:
+    """Mistral via NVIDIA's OpenAI-compatible API (integrate.api.nvidia.com).
+
+    Same JSON contracts as Gemini; the model replies in prose+JSON, parsed loosely.
+    """
+
+    name = "mistral-nvidia"
+
+    def __init__(self, api_key: str, base_url: str, model: str):
+        self.api_key = api_key
+        self.base_url = base_url.rstrip("/")
+        self.model = model
+
+    def _chat(self, prompt: str) -> str:
+        resp = httpx.post(
+            f"{self.base_url}/chat/completions",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            json={
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 4096,
+                "temperature": 0.1,
+                # Mistral Large 4 on NVIDIA is a reasoning model: without a low effort
+                # it burns ~100s and thousands of tokens thinking before answering.
+                "reasoning_effort": "low",
+                "stream": False,
+            },
+            timeout=180,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
+
+    def classify(self, text: str) -> dict:
+        return _parse_json_loose(self._chat(classify_prompt(text)))
+
+    def extract(self, text: str) -> dict:
+        return _parse_json_loose(self._chat(extract_prompt(text)))
+
+    def complete(self, prompt: str) -> str:
+        return self._chat(prompt).strip()
+
+
 class GeminiProvider:
     name = "gemini"
 
@@ -143,6 +199,8 @@ class MockProvider:
 
 def get_provider():
     s = get_settings()
+    if s.nvidia_api_key:
+        return NvidiaMistralProvider(s.nvidia_api_key, s.nvidia_base_url, s.nvidia_model)
     if s.google_api_key:
         return GeminiProvider(s.google_api_key, s.gemini_model)
     return MockProvider()
@@ -153,3 +211,10 @@ def get_provider():
 
     def extract(self, text: str) -> dict:
         return self._generate(extract_prompt(text))
+
+    def complete(self, prompt: str) -> str:
+        # Gemini structured-JSON mode; ask for plain prose and read the string out.
+        raw = self._generate(
+            "Reply with JSON: {\"text\": \"<your answer>\"}.\n\n" + prompt
+        )
+        return str(raw.get("text") or raw).strip()

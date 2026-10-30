@@ -2,6 +2,7 @@ import os
 
 # Force the deterministic mock provider for the whole test suite — no network, no keys.
 os.environ.setdefault("GOOGLE_API_KEY", "")
+os.environ.setdefault("NVIDIA_API_KEY", "")
 os.environ["DATABASE_URL"] = "sqlite://"
 
 import pytest  # noqa: E402

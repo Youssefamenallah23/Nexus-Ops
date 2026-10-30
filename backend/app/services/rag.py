@@ -8,9 +8,9 @@ import math
 from sqlalchemy import text as sql_text
 from sqlalchemy.orm import Session as DBSession
 
-from ..config import get_settings
 from ..models import Chunk, Document, User
 from .embeddings import get_embedding_provider
+from .llm import get_provider
 
 CHUNK_CHARS = 800
 CHUNK_OVERLAP = 120
@@ -115,23 +115,21 @@ def _mock_answer(question: str, hits: list[dict]) -> str | None:
 
 def answer_question(db: DBSession, user: User, question: str) -> dict:
     hits = retrieve(db, user, question)
-    provider = "gemini" if get_settings().google_api_key else "extractive"
+    provider = get_provider()
+    name = provider.name
 
-    if provider == "gemini":
+    if provider.name != "mock":
         context = "\n\n".join(
             f"[{i + 1}] {h['filename']} (excerpt): {h['excerpt']}" for i, h in enumerate(hits)
         )
-        from .llm import GeminiProvider
-
-        gem = GeminiProvider(get_settings().google_api_key, get_settings().gemini_model)
-        raw = gem._generate(
+        raw = provider.complete(
             "Answer strictly from the excerpts below. Cite sources as [1], [2]. "
             "If the excerpts do not answer the question, start your reply with "
             "NOT_SUPPORTED and explain what is missing.\n\n"
             f"QUESTION: {question}\n\nEXCERPTS:\n{context}"
         )
-        answer = raw.get("answer") or raw.get("text") or str(raw)
-        supported = not answer.upper().startswith("NOT_SUPPORTED")
+        supported = not raw.upper().startswith("NOT_SUPPORTED")
+        answer = raw
     else:
         answer = _mock_answer(question, hits)
         supported = answer is not None
@@ -143,11 +141,11 @@ def answer_question(db: DBSession, user: User, question: str) -> dict:
                 "question. Try rephrasing, or ask an administrator to ingest more sources."
             ),
             "citations": hits[:3],
-            "provider": provider,
+            "provider": name,
             "supported": False,
         }
 
-    return {"answer": answer, "citations": hits, "provider": provider, "supported": True}
+    return {"answer": answer, "citations": hits, "provider": name, "supported": True}
 
 
 

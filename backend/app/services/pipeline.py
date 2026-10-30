@@ -1,7 +1,7 @@
 """Document processing pipeline: classify -> extract -> validate against per-type schemas."""
 from pydantic import BaseModel, Field, ValidationError
 
-from .llm import DOC_TYPES, get_provider
+from .llm import DOC_TYPES, MockProvider, get_provider
 
 # Which fields are mandatory for a document to be considered complete, per type.
 REQUIRED_FIELDS = {
@@ -86,8 +86,34 @@ def extract_fields(text: str, doc_type: str = "other") -> dict:
     return {"data": data, "missing_fields": missing, "confidence": f.confidence}
 
 
+def _classify_and_extract(text: str) -> tuple[dict, dict]:
+    """Run classification and extraction in parallel — the NVIDIA reasoning model is
+    slow (~1-2min/call), so the two independent calls must not be sequential."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        cls_f = pool.submit(classify_document, text)
+        # doc_type for required-field computation arrives with the classification;
+        # extraction itself is type-independent.
+        ext_f = pool.submit(extract_fields, text, "other")
+        return cls_f.result(), ext_f.result()
+
+
 def process_document(text: str) -> dict:
-    """Full AI pass over raw text: classification + validated extraction."""
-    cls = classify_document(text)
-    ext = extract_fields(text, cls["doc_type"])
-    return {"classification": cls, **ext}
+    """Full AI pass over raw text: classification + validated extraction.
+    Falls back to the deterministic mock provider if the real one fails/times out."""
+    try:
+        cls, ext = _classify_and_extract(text)
+    except Exception:  # provider down, timeout, rate limit — keep the product usable
+        fallback = MockProvider()
+        cls = Classification(**fallback.classify(text)).model_dump()
+        ext = extract_fields(text, cls["doc_type"])
+        ext["fallback"] = True
+        cls["confidence"] = min(cls["confidence"], 0.6)  # degraded confidence
+    ext = dict(ext)
+    # missing fields depend on the classified type — recompute now that we know it
+    ext["missing_fields"] = [
+        k for k in REQUIRED_FIELDS.get(cls["doc_type"], []) if ext["data"].get(k) in (None, "")
+    ]
+    ext["classification"] = cls
+    return ext

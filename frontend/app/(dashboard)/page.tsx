@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AlertTriangle, Clock, FileText, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -50,21 +49,21 @@ export default function OverviewPage() {
         <p className="text-sm text-muted-foreground">Here is what needs your attention today.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 divide-border sm:grid-cols-4 sm:divide-x">
         {stats ? (
           <>
-            <StatCard icon={<FileText className="size-4" />} label="Pending review" value={pending}
+            <StatCell label="Pending review" value={pending} tone={pending > 0 ? "fault" : "quiet"}
               hint={`${stats.documents.total} documents total`} />
-            <StatCard icon={<AlertTriangle className="size-4" />} label="Overdue tasks" value={overdue}
-              hint={`${stats.tasks.by_status.completed ?? 0} tasks completed`} />
-            <StatCard icon={<ListChecks className="size-4" />} label="Automation rate"
-              value={`${Math.round(stats.documents.straight_through_rate * 100)}%`}
-              hint="documents fully processed with review" />
-            <StatCard icon={<Clock className="size-4" />} label="Est. hours saved / year"
-              value={saved.toLocaleString("fr-FR")} hint="simulated — see Analytics" />
+            <StatCell label="Overdue tasks" value={overdue} tone={overdue > 0 ? "fault" : "quiet"}
+              hint={`${stats.tasks.by_status.completed ?? 0} completed`} />
+            <StatCell label="Automation rate"
+              value={`${Math.round(stats.documents.straight_through_rate * 100)}%`} tone="voltage"
+              hint="processed with human review" />
+            <StatCell label="Hours saved / year" value={saved.toLocaleString("fr-FR")} tone="voltage"
+              hint="simulated — see analytics" />
           </>
         ) : (
-          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)
+          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)
         )}
       </div>
 
@@ -126,17 +125,18 @@ export default function OverviewPage() {
   );
 }
 
-function StatCard({ icon, label, value, hint }: {
-  icon: React.ReactNode; label: string; value: string | number; hint: string;
+function StatCell({ label, value, hint, tone }: {
+  label: string; value: string | number; hint: string; tone: "fault" | "voltage" | "quiet";
 }) {
+  const toneClass =
+    tone === "fault" ? "text-[var(--fault)]" : tone === "voltage" ? "text-[var(--voltage)]" : "text-foreground";
   return (
-    <Card>
-      <CardHeader>
-        <CardDescription className="flex items-center gap-2">{icon}{label}</CardDescription>
-        <CardTitle className="text-2xl tabular-nums">{value}</CardTitle>
-      </CardHeader>
-      <CardContent className="text-xs text-muted-foreground">{hint}</CardContent>
-    </Card>
+    <div className="flex flex-col gap-1 border-b border-border px-5 py-4 sm:border-b-0">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className={`tnum text-3xl font-medium leading-none ${toneClass}`}>{value}</span>
+      <span className="text-xs text-muted-foreground/70">{hint}</span>
+    </div>
   );
 }
+
 

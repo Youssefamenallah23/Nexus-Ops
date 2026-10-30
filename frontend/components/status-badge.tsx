@@ -1,17 +1,18 @@
 import { Badge } from "@/components/ui/badge";
 
-const MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  uploaded: { label: "Uploaded", variant: "outline" },
-  needs_review: { label: "Needs review", variant: "secondary" },
-  approved: { label: "Approved", variant: "default" },
-  rejected: { label: "Rejected", variant: "destructive" },
-  pending_review: { label: "Pending", variant: "outline" },
-  in_progress: { label: "In progress", variant: "secondary" },
-  blocked: { label: "Blocked", variant: "destructive" },
-  completed: { label: "Completed", variant: "default" },
+const MAP: Record<string, { label: string; className: string }> = {
+  uploaded: { label: "Uploaded", className: "border-border text-muted-foreground" },
+  needs_review: { label: "Needs review", className: "border-[var(--fault)]/40 bg-[var(--fault)]/10 text-[var(--fault)]" },
+  approved: { label: "Approved", className: "border-primary/40 bg-primary/10 text-primary" },
+  rejected: { label: "Rejected", className: "border-transparent bg-[var(--fault)] text-[#02070a]" },
+  pending_review: { label: "Pending", className: "border-border text-muted-foreground" },
+  in_progress: { label: "In progress", className: "border-primary/30 bg-primary/5 text-primary/90" },
+  blocked: { label: "Blocked", className: "border-[var(--fault)]/40 bg-[var(--fault)]/10 text-[var(--fault)]" },
+  completed: { label: "Completed", className: "border-transparent bg-primary text-[#02070a]" },
 };
 
 export function StatusBadge({ status }: { status: string }) {
-  const s = MAP[status] ?? { label: status, variant: "outline" as const };
-  return <Badge variant={s.variant}>{s.label}</Badge>;
+  const s = MAP[status] ?? { label: status, className: "border-border text-muted-foreground" };
+  return <Badge variant="outline" className={s.className}>{s.label}</Badge>;
 }
+

@@ -36,7 +36,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   async function logout() {
     await api("/auth/logout", { method: "POST" }).catch(() => {});
-    router.push("/login");
+    // Full reload so AuthProvider drops the stale user.
+    window.location.assign("/login");
   }
 
   return (

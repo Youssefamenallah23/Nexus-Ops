@@ -1,0 +1,40 @@
+INFO:     Started server process [13688]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:52990 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52993 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52993 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59875 - "POST /auth/login HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:59879 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63399 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63401 - "GET /documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63403 - "GET /analytics/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63408 - "POST /documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63410 - "POST /documents/3d1958c0-d5a2-44db-abfd-4be4d6621666/approve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52120 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52120 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54163 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54163 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60592 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60592 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55837 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57350 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57350 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64423 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64423 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57625 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57625 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64377 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64377 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61987 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61987 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59976 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59976 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54134 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54134 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64951 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64951 - "GET /v1/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60962 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60962 - "GET /v1/models HTTP/1.1" 404 Not Found

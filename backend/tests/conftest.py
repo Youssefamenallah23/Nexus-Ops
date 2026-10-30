@@ -1,0 +1,62 @@
+import os
+
+# Force the deterministic mock provider for the whole test suite — no network, no keys.
+os.environ.setdefault("GOOGLE_API_KEY", "")
+os.environ["DATABASE_URL"] = "sqlite://"
+
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy.orm import sessionmaker  # noqa: E402
+from sqlalchemy.pool import StaticPool  # noqa: E402
+
+from app.db import Base, get_db  # noqa: E402
+from app.main import app  # noqa: E402
+
+engine = create_engine(
+    "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+)
+TestSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+Base.metadata.create_all(engine)
+
+
+def override_get_db():
+    db = TestSession()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+app.dependency_overrides[get_db] = override_get_db
+
+
+@pytest.fixture
+def client():
+    return TestClient(app)
+
+
+@pytest.fixture
+def seeded(client):
+    """Create three role users, then log in once per role."""
+    from app.models import User
+
+    db = TestSession()
+    roles = {"admin@nexus.test": ("administrator", "Administration"),
+             "manager@nexus.test": ("manager", "Project Management"),
+             "employee@nexus.test": ("employee", "Field Operations")}
+    sessions = {}
+    for email, (role, dept) in roles.items():
+        if not db.query(User).filter(User.email == email).one_or_none():
+            db.add(User(email=email, name=email.split("@")[0].title(), role=role, department=dept))
+    db.commit()
+    for email in roles:
+        r = client.post("/auth/login", json={"email": email})
+        assert r.status_code == 200, r.text
+        sessions[roles[email][0]] = r.cookies.get("nexus_session")
+    db.close()
+    return sessions
+
+
+def cookie(sessions, role):
+    return {"nexus_session": sessions[role]}

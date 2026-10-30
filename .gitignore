@@ -11,3 +11,8 @@ uploads/
 # editor / os
 .vscode/
 .DS_Store
+# logs / scratch
+*.log
+cookies.txt
+docs.json
+an.json

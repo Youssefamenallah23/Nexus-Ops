@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.5-flash-lite"
     agent_review_threshold: float = 0.80
     upload_dir: str = "uploads"
+    n8n_webhook_url: str = ""  # e.g. http://localhost:5678/webhook/nexus-ops; empty = mock mode
+    n8n_webhook_secret: str = "nexus-dev-secret"
 
 
 @lru_cache

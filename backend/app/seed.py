@@ -1,7 +1,14 @@
 """Seed synthetic demo data: users, projects, 22+ documents through the real pipeline.
 
 Everything here is fictional. Run: uv run python -m app.seed
+
+Seeding always uses the deterministic mock provider — no network, no keys, fast.
 """
+import os
+
+os.environ["NVIDIA_API_KEY"] = ""
+os.environ["GOOGLE_API_KEY"] = ""
+
 import random
 
 from .db import Base, SessionLocal, engine
@@ -153,6 +160,11 @@ def run():
             elif i % 3 == 1:
                 task.status = "in_progress"
                 task.assignee_id = uploader.id
+            # some tasks are overdue so the reminder workflow has material
+            if i % 4 == 2:
+                from datetime import datetime, timedelta, timezone
+
+                task.due_date = datetime.now(timezone.utc) - timedelta(days=2)
         db.add(AuditEvent(actor_id=uploader.id, actor_label=uploader.name, action="document.uploaded",
                           entity_type="document", entity_id=str(doc.id), detail={"filename": filename}))
         db.add(AuditEvent(actor_label="ai:classification-agent", action="ai.classified",
@@ -167,10 +179,24 @@ def run():
     from .services.rag import ingest_document
 
     ingested = sum(ingest_document(db, d) for d in db.query(Document).filter(Document.status == "approved"))
+
+    # Demo workflow executions (mock mode — n8n not connected during seed).
+    from .services.n8n import emit
+
+    wf_count = 0
+    for d in db.query(Document).filter(Document.status == "approved").all():
+        task = db.query(Task).filter(Task.document_id == d.id).one_or_none()
+        if task:
+            emit(db, workflow_type="document_approved", entity_type="document", entity_id=str(d.id),
+                 payload={"document_id": str(d.id), "filename": d.filename, "doc_type": d.doc_type,
+                          "department": task.department, "task_id": str(task.id), "task_title": task.title})
+            wf_count += 1
+
     db.add(AuditEvent(actor_label="system", action="copilot.indexed", entity_type="copilot",
                       detail={"chunks": ingested}))
     db.commit()
-    print(f"Seeded {len(USERS)} users, {len(PROJECTS)} projects, {len(DOCS)} documents, {ingested} copilot chunks.")
+    print(f"Seeded {len(USERS)} users, {len(PROJECTS)} projects, {len(DOCS)} documents, "
+          f"{ingested} copilot chunks, {wf_count} workflow executions.")
 
 
 if __name__ == "__main__":

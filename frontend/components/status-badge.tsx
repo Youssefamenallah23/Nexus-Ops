@@ -9,6 +9,9 @@ const MAP: Record<string, { label: string; className: string }> = {
   in_progress: { label: "In progress", className: "border-primary/30 bg-primary/5 text-primary/90" },
   blocked: { label: "Blocked", className: "border-[var(--fault)]/40 bg-[var(--fault)]/10 text-[var(--fault)]" },
   completed: { label: "Completed", className: "border-transparent bg-primary text-[#02070a]" },
+  success: { label: "Success", className: "border-primary/40 bg-primary/10 text-primary" },
+  mock: { label: "Mock", className: "border-border text-muted-foreground" },
+  failed: { label: "Failed", className: "border-[var(--fault)]/40 bg-[var(--fault)]/10 text-[var(--fault)]" },
 };
 
 export function StatusBadge({ status }: { status: string }) {

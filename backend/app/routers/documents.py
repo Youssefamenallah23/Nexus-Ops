@@ -161,6 +161,13 @@ def approve_document(doc_id: str, db: DBSession = Depends(get_db),
     from ..services.rag import ingest_document
 
     ingest_document(db, d)
+    # Milestone 4: notify automation (n8n) that a document was approved and a task routed.
+    from ..services.n8n import emit
+
+    emit(db, workflow_type="document_approved", entity_type="document", entity_id=str(d.id),
+         payload={"document_id": str(d.id), "filename": d.filename, "doc_type": d.doc_type,
+                  "department": task.department, "task_id": str(task.id), "task_title": task.title},
+         actor=user)
     return {"ok": True, "task_id": task.id, "task_department": task.department}
 
 

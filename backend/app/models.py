@@ -105,6 +105,26 @@ class Task(Base):
     document: Mapped[Document | None] = relationship(back_populates="tasks")
 
 
+class WorkflowExecution(Base):
+    """Every automation emission and its outcome — success, failure, or mock fallback."""
+
+    __tablename__ = "workflow_executions"
+
+    id: Mapped[str] = mapped_column(Uuid, primary_key=True, default=new_id)
+    # document_approved | task_reminder | task_status_changed
+    workflow_type: Mapped[str] = mapped_column(String, index=True)
+    entity_type: Mapped[str] = mapped_column(String)
+    entity_id: Mapped[str | None] = mapped_column(String)
+    # pending | success | failed | mock
+    status: Mapped[str] = mapped_column(String, default="pending", index=True)
+    attempt: Mapped[int] = mapped_column(Integer, default=1)
+    payload: Mapped[dict] = mapped_column(JSONType)
+    response: Mapped[dict | None] = mapped_column(JSONType)
+    error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class AuditEvent(Base):
     __tablename__ = "audit_events"
 

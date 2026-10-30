@@ -88,5 +88,6 @@ def test_audit_trail_records_approval(client, seeded):
     events = client.get("/audit-events", cookies=cookie(seeded, "administrator")).json()
     actions = {e["action"] for e in events}
     assert "extraction.approved" in actions
-    assert "task.created_from_document" in actions
+    assert any(a.startswith("workflow.") for a in actions)  # automation agent emitted to n8n
+    assert "ai.pipeline_planned" in actions  # supervisor planned the run
 

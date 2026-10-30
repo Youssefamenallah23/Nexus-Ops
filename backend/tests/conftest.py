@@ -57,6 +57,12 @@ def seeded(client):
         assert r.status_code == 200, r.text
         sessions[roles[email][0]] = r.cookies.get("nexus_session")
     db.close()
+    # httpx2's cookie jar overrides per-request cookies — clear it so each test
+    # request authenticates with the explicit cookie it passes.
+    try:
+        client.cookies.delete("nexus_session")
+    except Exception:
+        pass
     return sessions
 
 

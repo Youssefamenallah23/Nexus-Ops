@@ -44,6 +44,8 @@ class DocumentDetail(DocumentOut):
     text_content: str
     extractions: list[ExtractionOut]
     reviewer_name: str | None = None
+    qa_issues: list = []
+    qa_ok: bool = True
 
 
 class TaskOut(BaseModel):

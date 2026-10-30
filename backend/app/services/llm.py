@@ -84,7 +84,10 @@ class NvidiaMistralProvider:
             timeout=180,
         )
         resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
+        data = resp.json()
+        usage = data.get("usage", {})
+        self.last_usage = {"in": usage.get("prompt_tokens"), "out": usage.get("completion_tokens")}
+        return data["choices"][0]["message"]["content"]
 
     def classify(self, text: str) -> dict:
         return _parse_json_loose(self._chat(classify_prompt(text)))
@@ -115,6 +118,8 @@ class GeminiProvider:
         )
         resp.raise_for_status()
         data = resp.json()
+        usage = data.get("usageMetadata", {})
+        self.last_usage = {"in": usage.get("promptTokenCount"), "out": usage.get("candidatesTokenCount")}
         return json.loads(data["candidates"][0]["content"]["parts"][0]["text"])
 
 def _parse_amount(raw: str) -> float | None:

@@ -194,9 +194,28 @@ def run():
 
     db.add(AuditEvent(actor_label="system", action="copilot.indexed", entity_type="copilot",
                       detail={"chunks": ingested}))
+
+    # Demo agent traces so the Observatory has content on first load.
+    from .models import AgentTrace
+
+    demo_traces = [
+        ("supervisor", "rules", "v1", {"plan": "full pipeline: classify -> extract -> QA -> automation gate"}, 2, None),
+        ("classification-agent", "mock", "heuristic-v1", {"doc_type": "supplier_quote", "confidence": 0.79}, 4, 0.79),
+        ("document-intelligence-agent", "mock", "heuristic-v1", {"extracted": 5, "of": 7}, 6, 0.8),
+        ("qa-agent", "mock", "heuristic-v1", {"issues": [], "qa_ok": True}, 3, 0.79),
+        ("knowledge-agent", "mock", "hashing-v1", {"citations": 5, "supported": True}, 12, None),
+        ("automation-agent", "n8n", "webhook-v1", {"routed_to": "Administration"}, 140, None),
+    ]
+    import time as _t
+
+    for agent, provider, model, output, ms, conf in demo_traces:
+        usage = {"in": 210, "out": 48} if provider != "rules" and provider != "n8n" else {}
+        db.add(AgentTrace(agent=agent, provider=provider, model=model, input_summary="seeded demo run",
+                          output=output, latency_ms=ms + random.randint(0, 6), status="ok", confidence=conf,
+                          tokens_in=usage.get("in"), tokens_out=usage.get("out")))
     db.commit()
     print(f"Seeded {len(USERS)} users, {len(PROJECTS)} projects, {len(DOCS)} documents, "
-          f"{ingested} copilot chunks, {wf_count} workflow executions.")
+          f"{ingested} copilot chunks, {wf_count} workflow executions, {len(demo_traces)} agent traces.")
 
 
 if __name__ == "__main__":

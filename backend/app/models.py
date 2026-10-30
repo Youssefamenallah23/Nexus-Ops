@@ -105,6 +105,28 @@ class Task(Base):
     document: Mapped[Document | None] = relationship(back_populates="tasks")
 
 
+class AgentTrace(Base):
+    """Observatory record for every AI agent invocation: who, what, how long, how confident."""
+
+    __tablename__ = "agent_traces"
+
+    id: Mapped[str] = mapped_column(Uuid, primary_key=True, default=new_id)
+    # supervisor | classification-agent | document-intelligence-agent | qa-agent | knowledge-agent | automation-agent
+    agent: Mapped[str] = mapped_column(String, index=True)
+    provider: Mapped[str] = mapped_column(String, default="mock")
+    model: Mapped[str] = mapped_column(String, default="")
+    document_id: Mapped[str | None] = mapped_column(ForeignKey("documents.id"), index=True)
+    input_summary: Mapped[str] = mapped_column(Text, default="")
+    output: Mapped[dict] = mapped_column(JSONType, default=dict)
+    latency_ms: Mapped[int] = mapped_column(Integer, default=0)
+    tokens_in: Mapped[int | None] = mapped_column()
+    tokens_out: Mapped[int | None] = mapped_column()
+    confidence: Mapped[float | None] = mapped_column()
+    # ok | fallback | error
+    status: Mapped[str] = mapped_column(String, default="ok", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
 class WorkflowExecution(Base):
     """Every automation emission and its outcome — success, failure, or mock fallback."""
 

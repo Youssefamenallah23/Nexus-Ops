@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Bot, FileText, ListChecks, Settings, ShieldCheck, Workflow } from "lucide-react";
+import { Activity, Bot, FileText, ListChecks, Microscope, Settings, ShieldCheck, Workflow } from "lucide-react";
 import type { ComponentType } from "react";
 
 export const NAV_ITEMS: {
@@ -11,8 +11,9 @@ export const NAV_ITEMS: {
 }[] = [
   { title: "Overview", url: "/", Icon: Activity },
   { title: "Documents", url: "/documents", Icon: FileText },
-  { title: "AI Copilot", url: "/copilot", Icon: Bot, milestone: "Milestone 3 — RAG with citations" },
-  { title: "Workflows", url: "/workflows", Icon: Workflow, milestone: "Milestone 4 — n8n execution" },
+  { title: "AI Copilot", url: "/copilot", Icon: Bot },
+  { title: "Agent Observatory", url: "/observatory", Icon: Microscope },
+  { title: "Workflows", url: "/workflows", Icon: Workflow },
   { title: "Tasks", url: "/tasks", Icon: ListChecks },
   { title: "Analytics", url: "/analytics", Icon: Activity },
   { title: "Audit Logs", url: "/audit", Icon: ShieldCheck },

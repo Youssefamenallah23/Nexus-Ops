@@ -6,8 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
 
+from .agents.graph import setup_checkpointer  # noqa: E402
 from .db import Base, engine  # noqa: E402
-from .routers import auth, copilot, documents, ops, workflows  # noqa: E402
+from .routers import auth, copilot, documents, observatory, ops, workflows  # noqa: E402
 
 app = FastAPI(title="NEXUS OPS API", version="0.1.0")
 
@@ -24,11 +25,13 @@ app.include_router(documents.router)
 app.include_router(ops.router)
 app.include_router(copilot.router)
 app.include_router(workflows.router)
+app.include_router(observatory.router)
 
 
 @app.on_event("startup")
 def startup():
     Base.metadata.create_all(engine)
+    setup_checkpointer()
 
 
 @app.get("/health")

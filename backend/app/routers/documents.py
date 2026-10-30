@@ -58,37 +58,39 @@ def upload_document(
     if not text.strip():
         raise HTTPException(422, "No extractable text found in the document.")
 
-    result = pipeline.process_document(text)
-    cls = result["classification"]
-
     doc = Document(
         filename=file.filename,
         mime_type=file.content_type,
         size_bytes=len(raw),
         text_content=text,
-        status="needs_review",
-        doc_type=cls["doc_type"],
-        classification_confidence=cls["confidence"],
-        department=cls["department"],
+        status="uploaded",
         uploaded_by=user.id,
         project_id=project_id,
     )
     db.add(doc)
     db.flush()
-    db.add(
-        Extraction(
-            document_id=doc.id,
-            revision=1,
-            data=result["data"],
-            missing_fields=result["missing_fields"],
-            confidence=result["confidence"],
-            created_by="ai",
-        )
-    )
+
+    # Multi-agent pipeline: supervisor -> classification -> intelligence -> QA,
+    # checkpointed before the automation agent (human approval gate).
+    from ..agents.graph import run_intake
+
+    state = run_intake(db, str(doc.id), text, doc.filename)
+    cls = state.get("classification", {})
+    ext = state.get("extraction", {"data": {}, "missing_fields": [], "confidence": 0.0})
+
+    doc.status = "needs_review"
+    doc.doc_type = cls.get("doc_type", "other")
+    doc.classification_confidence = cls.get("confidence")
+    doc.department = cls.get("department")
+    db.add(Extraction(
+        document_id=doc.id, revision=1, data=ext.get("data", {}),
+        missing_fields=ext.get("missing_fields", []), confidence=ext.get("confidence", 0.0),
+        created_by="ai",
+    ))
     audit(db, actor=user, action="document.uploaded", entity_type="document", entity_id=doc.id,
           detail={"filename": doc.filename, "doc_type": doc.doc_type, "provider": pipeline.get_provider().name})
-    audit(db, actor_label="ai:classification-agent", action="ai.classified", entity_type="document",
-          entity_id=doc.id, detail=cls)
+    audit(db, actor_label="ai:supervisor", action="ai.pipeline_planned", entity_type="document",
+          entity_id=doc.id, detail={"note": state.get("supervisor_note", "")})
     db.commit()
     return doc_to_out(db, doc)
 
@@ -100,6 +102,13 @@ def get_document(doc_id: str, db: DBSession = Depends(get_db), user: User = Depe
     if not d:
         raise HTTPException(404, "Document not found")
     out = doc_to_out(db, d).model_dump()
+    from ..models import AgentTrace
+
+    qa_trace = (db.query(AgentTrace)
+                .filter(AgentTrace.agent == "qa-agent", AgentTrace.document_id == d.id)
+                .order_by(AgentTrace.created_at.desc()).first())
+    out["qa_issues"] = (qa_trace.output.get("issues", []) if qa_trace else [])
+    out["qa_ok"] = (qa_trace.output.get("qa_ok", True) if qa_trace else True)
     out.update(
         text_content=d.text_content,
         extractions=[
@@ -151,24 +160,21 @@ def approve_document(doc_id: str, db: DBSession = Depends(get_db),
         raise HTTPException(404, "Document not found")
     if d.status != "needs_review":
         raise HTTPException(409, f"Only documents in review can be approved (current: {d.status}).")
-    d.status = "approved"
-    d.reviewed_by = user.id
-    d.reviewed_at = datetime.now(timezone.utc)
-    task = create_task_for_document(db, d, user)
-    audit(db, actor=user, action="extraction.approved", entity_type="document", entity_id=d.id)
-    db.commit()
+
+    # Resume the checkpointed graph: the automation agent runs now (n8n + task).
+    from ..agents.graph import resume_after_approval
+    from ..models import Task
+
+    resume_after_approval(db, user, doc_id)
+    db.expire(d)
+    task = db.query(Task).filter(Task.document_id == d.id).order_by(Task.created_at.desc()).first()
+
     # Approved documents become copilot knowledge.
     from ..services.rag import ingest_document
 
     ingest_document(db, d)
-    # Milestone 4: notify automation (n8n) that a document was approved and a task routed.
-    from ..services.n8n import emit
-
-    emit(db, workflow_type="document_approved", entity_type="document", entity_id=str(d.id),
-         payload={"document_id": str(d.id), "filename": d.filename, "doc_type": d.doc_type,
-                  "department": task.department, "task_id": str(task.id), "task_title": task.title},
-         actor=user)
-    return {"ok": True, "task_id": task.id, "task_department": task.department}
+    return {"ok": True, "task_id": str(task.id) if task else None,
+            "task_department": task.department if task else None}
 
 
 @router.post("/{doc_id}/reject")

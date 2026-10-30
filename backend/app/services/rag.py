@@ -100,36 +100,46 @@ def _mock_answer(question: str, hits: list[dict]) -> str | None:
         # one short word ("next", "site") is noise; require 2+ or one long informative token
         return len(overlap) >= 2 or any(len(t) >= 6 for t in overlap)
 
-    sentences: list[tuple[float, str]] = []
-    for hit in hits:
+    sentences: list[tuple[float, str, int]] = []
+    for source, hit in enumerate(hits, start=1):
         for sent in hit["excerpt"].split(". "):
             sent_tokens = {t.strip(".,:;?!()") for t in sent.lower().split()}
             overlap = q_tokens & sent_tokens
             if meaningful(overlap):
-                sentences.append((len(overlap), sent.strip()))
+                sentences.append((len(overlap), sent.strip(), source))
     if not sentences:
         return None
     sentences.sort(key=lambda s: -s[0])
-    return " ".join(f"{s} [source {i + 1}]" for i, (_, s) in enumerate(sentences[:3]))
+    return " ".join(f"{sentence} [{source}]" for _, sentence, source in sentences[:3])
 
 
 def answer_question(db: DBSession, user: User, question: str) -> dict:
     hits = retrieve(db, user, question)
     provider = get_provider()
     name = provider.name
+    fallback = False
 
-    if provider.name != "mock":
+    if not hits:
+        answer, supported = None, False
+    elif provider.name != "mock":
         context = "\n\n".join(
             f"[{i + 1}] {h['filename']} (excerpt): {h['excerpt']}" for i, h in enumerate(hits)
         )
-        raw = provider.complete(
-            "Answer strictly from the excerpts below. Cite sources as [1], [2]. "
-            "If the excerpts do not answer the question, start your reply with "
-            "NOT_SUPPORTED and explain what is missing.\n\n"
-            f"QUESTION: {question}\n\nEXCERPTS:\n{context}"
-        )
-        supported = not raw.upper().startswith("NOT_SUPPORTED")
-        answer = raw
+        try:
+            raw = provider.complete(
+                "Answer strictly from the excerpts below. Cite sources as [1], [2]. "
+                "If the excerpts do not answer the question, start your reply with "
+                "NOT_SUPPORTED and explain what is missing.\n\n"
+                f"QUESTION: {question}\n\nEXCERPTS:\n{context}"
+            )
+            supported = bool(raw.strip()) and not raw.strip().upper().startswith("NOT_SUPPORTED")
+            answer = raw
+        except Exception:
+            # Retrieval has already enforced access scope. Keep citations and
+            # quote matching sentences when the answer provider is unavailable.
+            answer = _mock_answer(question, hits)
+            supported = answer is not None
+            name, fallback = "extractive", True
     else:
         answer = _mock_answer(question, hits)
         supported = answer is not None
@@ -143,9 +153,10 @@ def answer_question(db: DBSession, user: User, question: str) -> dict:
             "citations": hits[:3],
             "provider": name,
             "supported": False,
+            "fallback": fallback,
         }
 
-    return {"answer": answer, "citations": hits, "provider": name, "supported": True}
+    return {"answer": answer, "citations": hits, "provider": name, "supported": True, "fallback": fallback}
 
 
 

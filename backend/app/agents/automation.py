@@ -3,9 +3,9 @@ import time
 
 from sqlalchemy.orm import Session as DBSession
 
-from ..models import AgentTrace, Document, Task, audit
+from ..models import AgentTrace, Document, audit
 from ..services.n8n import emit
-from ..services.routing import ROUTING_RULES
+from ..services.routing import create_task_for_document
 from .state import PipelineState
 
 
@@ -20,19 +20,8 @@ def automation_node(state: PipelineState, db: DBSession, user) -> dict:
     doc_id = uuid.UUID(doc_id) if isinstance(doc_id, str) else doc_id
     doc = db.get(Document, doc_id)
     cls = state.get("classification") or {}
-    rule = ROUTING_RULES.get(doc.doc_type, ROUTING_RULES["other"])
-    latest = doc.extractions[-1].data if doc.extractions else {}
-    task = Task(
-        title=rule["title"].format(ref=latest.get("reference") or doc.filename,
-                                   site=latest.get("site") or "site", filename=doc.filename),
-        description=f"Auto-created from approved document '{doc.filename}'.",
-        status="pending_review", priority=cls.get("priority", "medium"),
-        department=rule["department"], document_id=doc.id, project_id=doc.project_id,
-        created_by=user.id if user else None,
-    )
-    db.add(task)
+    task = create_task_for_document(db, doc, user, priority=cls.get("priority", "medium"))
     doc.status = "approved"
-    from datetime import datetime, timezone
 
     doc.reviewed_at = datetime.now(timezone.utc)
     if user:

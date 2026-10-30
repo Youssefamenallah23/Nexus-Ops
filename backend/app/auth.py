@@ -57,8 +57,6 @@ def login(db: DBSession, email: str, password: str) -> User | None:
     user = db.query(User).filter(User.email == email).one_or_none()
     if not user or not verify_password(password, user.password_hash):
         return None
-    db.add(Session(token=secrets.token_urlsafe(32), user_id=user.id))
-    db.commit()
     return user
 
 

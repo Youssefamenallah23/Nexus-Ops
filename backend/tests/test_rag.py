@@ -107,3 +107,43 @@ def test_answer_cites_sources():
     assert {"document_id", "filename", "excerpt", "score"} <= set(c)
     assert "r14" in res["answer"].lower() or res["citations"][0]["excerpt"]
 
+
+
+def test_answer_provider_failure_falls_back_to_cited_sentences(monkeypatch):
+    class UnavailableProvider:
+        name = "unavailable"
+
+        def complete(self, prompt):
+            raise TimeoutError("provider unavailable")
+
+    db = TestSession()
+    user = _user(db, role="manager")
+    _make_doc(db, text="Transformer insulation was replaced during maintenance.", uploader=user)
+    monkeypatch.setattr(rag, "get_provider", UnavailableProvider)
+    result = rag.answer_question(db, user, "transformer insulation")
+    assert result["supported"] is True
+    assert result["fallback"] is True
+    assert result["provider"] == "extractive"
+    assert "[1]" in result["answer"]
+    assert result["citations"]
+
+
+def test_empty_retrieval_does_not_invoke_answer_provider(monkeypatch):
+    class Provider:
+        name = "live"
+
+        def complete(self, prompt):
+            raise AssertionError("No provider call without evidence")
+
+    monkeypatch.setattr(rag, "get_provider", Provider)
+    monkeypatch.setattr(rag, "retrieve", lambda *args: [])
+    result = rag.answer_question(None, None, "unanswerable")
+    assert result["supported"] is False
+    assert result["citations"] == []
+    assert result["fallback"] is False
+
+
+def test_extractive_citations_reference_the_original_hit_index():
+    answer = rag._mock_answer("transformer insulation", [{"excerpt": "Cable delivery scheduled."}, {"excerpt": "Transformer insulation replaced. Transformer insulation checked."}])
+    assert answer.count("[2]") == 2
+    assert "[1]" not in answer

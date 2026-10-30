@@ -86,7 +86,7 @@ def analytics_overview(db: DBSession = Depends(get_db), user=Depends(get_current
     overdue = db.query(func.count(Task.id)).filter(
         Task.due_date.is_not(None), Task.due_date < now, Task.status != "completed"
     ).scalar()
-    total_docs = sum(by_status.values()) or 1
+    total_docs = sum(by_status.values())
     approved = by_status.get("approved", 0)
     rejected = by_status.get("rejected", 0)
     return {
@@ -95,7 +95,7 @@ def analytics_overview(db: DBSession = Depends(get_db), user=Depends(get_current
             "by_status": by_status,
             "by_type": by_type,
             "pending_review": by_status.get("needs_review", 0),
-            "straight_through_rate": round((approved + rejected) / total_docs, 3),
+            "straight_through_rate": round((approved + rejected) / max(total_docs, 1), 3),
         },
         "tasks": {"by_status": tasks_by_status, "overdue": overdue},
         "automation": {

@@ -46,6 +46,7 @@ class DocumentDetail(DocumentOut):
     reviewer_name: str | None = None
     qa_issues: list = []
     qa_ok: bool = True
+    original_file_available: bool = False
 
 
 class TaskOut(BaseModel):

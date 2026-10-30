@@ -1,4 +1,6 @@
 """Routing rules: document type -> owning department + task template. Editable, one small table."""
+from datetime import datetime, timezone
+
 from ..models import Document, Task, audit
 
 # ponytail: static dict is enough; move to a DB table when non-engineers need to edit rules
@@ -12,7 +14,7 @@ ROUTING_RULES = {
 }
 
 
-def create_task_for_document(db, doc: Document, created_by) -> Task:
+def create_task_for_document(db, doc: Document, created_by, *, priority: str = "medium") -> Task:
     rule = ROUTING_RULES.get(doc.doc_type, ROUTING_RULES["other"])
     latest = doc.extractions[-1].data if doc.extractions else {}
     title = rule["title"].format(
@@ -20,17 +22,25 @@ def create_task_for_document(db, doc: Document, created_by) -> Task:
         site=latest.get("site") or "site",
         filename=doc.filename,
     )
+    due_date = None
+    if latest.get("due_date"):
+        try:
+            due_date = datetime.fromisoformat(latest["due_date"]).replace(tzinfo=timezone.utc)
+        except ValueError:
+            pass  # Legacy invalid dates stay visible in QA; do not invent a deadline.
     task = Task(
         title=title,
         description=f"Auto-created from approved document '{doc.filename}'.",
         status="pending_review",
-        priority="medium",
+        priority=priority,
+        due_date=due_date,
         department=rule["department"],
         document_id=doc.id,
         project_id=doc.project_id,
         created_by=created_by.id if created_by else None,
     )
     db.add(task)
+    db.flush()
     audit(db, actor=created_by, actor_label="system:workflow-engine", action="task.created_from_document",
           entity_type="task", entity_id=task.id, detail={"document_id": str(doc.id), "department": task.department})
     return task

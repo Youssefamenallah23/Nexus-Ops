@@ -90,4 +90,22 @@ def run_intake(db, document_id: str, text: str, filename: str) -> PipelineState:
 def resume_after_approval(db, user, document_id: str) -> PipelineState:
     """Resume the checkpointed graph: the automation agent runs now."""
     config = {"configurable": {"thread_id": document_id, "db": db, "user": user}}
-    return get_graph().invoke(None, config)
+    graph = get_graph()
+    if not graph.get_state(config).values:
+        # Seeded/legacy records predate graph checkpoints. Rebuild the review
+        # checkpoint from persisted values, after the API's role/status gate.
+        import uuid
+        from ..models import Document, audit
+
+        doc = db.get(Document, uuid.UUID(document_id))
+        latest = doc.extractions[-1] if doc.extractions else None
+        graph.update_state(config, {
+            "document_id": document_id, "filename": doc.filename, "text": doc.text_content,
+            "classification": {"doc_type": doc.doc_type, "department": doc.department,
+                               "confidence": doc.classification_confidence or 0, "priority": "medium"},
+            "extraction": {"data": latest.data if latest else {},
+                           "missing_fields": latest.missing_fields if latest else [],
+                           "confidence": latest.confidence if latest else 0},
+        }, as_node="qa")
+        audit(db, actor=user, action="document.checkpoint_restored", entity_type="document", entity_id=doc.id)
+    return graph.invoke(None, config)

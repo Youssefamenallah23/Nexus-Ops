@@ -19,7 +19,10 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 
 def _uuid(value: str):
     import uuid
-    return uuid.UUID(value)
+    try:
+        return uuid.UUID(value)
+    except ValueError:
+        raise HTTPException(422, "Invalid document ID.")
 
 
 def doc_to_out(db: DBSession, d: Document) -> DocumentOut:
@@ -121,6 +124,7 @@ def get_document(doc_id: str, db: DBSession = Depends(get_db), user: User = Depe
     out["qa_issues"] = (qa_trace.output.get("issues", []) if qa_trace else [])
     out["qa_ok"] = (qa_trace.output.get("qa_ok", True) if qa_trace else True)
     out.update(
+        original_file_available=bool(d.file_path and Path(d.file_path).exists()),
         text_content=d.text_content,
         extractions=[
             dict(revision=e.revision, data=e.data, missing_fields=e.missing_fields,

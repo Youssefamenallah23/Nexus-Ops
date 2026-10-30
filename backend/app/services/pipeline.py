@@ -1,5 +1,8 @@
 """Document processing pipeline: classify -> extract -> validate against per-type schemas."""
-from pydantic import BaseModel, Field, ValidationError
+from datetime import date
+import re
+
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .llm import DOC_TYPES, MockProvider, get_provider
 
@@ -38,6 +41,27 @@ class ExtractedFields(BaseModel):
     summary: str | None = None
     confidence: float = Field(default=0.0, ge=0, le=1)
 
+    @field_validator("supplier", "reference", "currency", "requester", "site", "due_date", "summary", mode="before")
+    @classmethod
+    def trim_text(cls, value):
+        return value.strip() or None if isinstance(value, str) else value
+
+    @field_validator("currency")
+    @classmethod
+    def validate_currency(cls, value):
+        if value is not None and value.upper() not in ("EUR", "USD", "GBP"):
+            raise ValueError("Currency must be EUR, USD, or GBP.")
+        return value.upper() if value else None
+
+    @field_validator("due_date")
+    @classmethod
+    def validate_due_date(cls, value):
+        if value is not None:
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+                raise ValueError("Use a date in YYYY-MM-DD format.")
+            date.fromisoformat(value)
+        return value
+
     def public(self) -> dict:
         return {k: v for k, v in self.model_dump().items() if k not in ("confidence",)}
 
@@ -62,25 +86,15 @@ def classify_document(text: str) -> dict:
     return c.model_dump() | {"doc_type": c.validate_type()}
 
 
-def extract_fields(text: str, doc_type: str = "other") -> dict:
+def extract_fields(text: str, doc_type: str = "other", *, provider=None) -> dict:
     """Extract fields; coerce/validate, never trust the model's structure blindly."""
-    raw = get_provider().extract(text)
+    raw = (provider or get_provider()).extract(text)
     try:
         f = ExtractedFields(**raw)
-    except ValidationError:
-        # Salvage whatever validates field-by-field instead of failing the whole document.
-        good = {k: v for k, v in raw.items() if k in ExtractedFields.model_fields}
-        try:
-            f = ExtractedFields(**good)
-        except ValidationError:
-            f = ExtractedFields()
-    if f.due_date:
-        import re
-
-        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", f.due_date):
-            f.due_date = None
-    if f.currency:
-        f.currency = f.currency.upper()[:3] if f.currency.upper()[:3] in ("EUR", "USD", "GBP") else None
+    except ValidationError as error:
+        # Keep valid fields when one provider value fails validation.
+        invalid = {issue["loc"][0] for issue in error.errors() if issue["loc"]}
+        f = ExtractedFields(**{key: value for key, value in raw.items() if key not in invalid})
     data = f.public()
     missing = [k for k in REQUIRED_FIELDS.get(doc_type, []) if data.get(k) in (None, "")]
     return {"data": data, "missing_fields": missing, "confidence": f.confidence}
@@ -107,7 +121,7 @@ def process_document(text: str) -> dict:
     except Exception:  # provider down, timeout, rate limit — keep the product usable
         fallback = MockProvider()
         cls = Classification(**fallback.classify(text)).model_dump()
-        ext = extract_fields(text, cls["doc_type"])
+        ext = extract_fields(text, cls["doc_type"], provider=fallback)
         ext["fallback"] = True
         cls["confidence"] = min(cls["confidence"], 0.6)  # degraded confidence
     ext = dict(ext)

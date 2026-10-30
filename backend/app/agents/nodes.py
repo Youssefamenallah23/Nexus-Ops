@@ -40,7 +40,7 @@ def supervisor_node(state: PipelineState, db: DBSession) -> dict:
     preview = " ".join(text.split())[:120]
     note = "full pipeline: classify -> extract -> QA -> automation gate"
     if len(text) < 40:
-        note = "tiny document: classify + QA only, extraction unlikely to find fields"
+        note = "tiny document: QA only after supervisor, insufficient text for extraction"
     _trace(db, agent="supervisor", provider_name="rules", model="v1", document_id=state.get("document_id"),
            input_summary=preview, output={"plan": note}, t0=t0)
     return {"supervisor_note": note}
@@ -77,7 +77,8 @@ def document_intelligence_node(state: PipelineState, db: DBSession) -> dict:
     except Exception as e:
         from ..services.llm import MockProvider
 
-        ext = {"data": MockProvider().extract(text), "missing_fields": [], "confidence": 0.5}
+        ext = extract_fields(text, doc_type, provider=MockProvider())
+        ext["confidence"] = min(ext["confidence"], 0.5)
         ext["fallback_error"] = str(e)[:200]
         status = "fallback"
     _trace(db, agent="document-intelligence-agent", provider_name=provider_name, model=model,

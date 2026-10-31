@@ -22,3 +22,10 @@ an.json
 .claude/
 .hallmark/
 skills-lock.json
+
+# hyperframes working artifacts
+**/.hyperframes/
+
+# studio caches
+**/.thumbnails/
+**/.waveform-cache/

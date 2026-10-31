@@ -1,0 +1,54 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #050505;
+    }
+    #scan {
+      position: absolute;
+      left: 0; right: 0; top: 50%;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(59,130,246,0) 0%, rgba(59,130,246,0.75) 50%, rgba(59,130,246,0) 100%);
+      box-shadow: 0 0 24px rgba(59,130,246,0.55);
+    }
+    #brand { position: relative; text-align: center; }
+    #s0-name {
+      color: #ffffff; font-size: 132px; font-weight: 800; letter-spacing: 0.06em; text-align: center;
+    }
+    #s0-name .nx { color: #3b82f6; }
+    #s0-sub {
+      color: #8b98a9; font-size: 30px; font-weight: 600; letter-spacing: 0.34em; text-transform: uppercase;
+      margin-top: 26px; text-align: center;
+    }
+    #s0-rule {
+      width: 0; height: 3px; margin: 30px auto 0 auto;
+      background: #3b82f6; box-shadow: 0 0 18px rgba(59,130,246,0.8);
+    }
+  </style>
+  <div data-hf-id="hf-1pg5" id="root" data-composition-id="scene0">
+    <div data-hf-id="hf-ayli" class="clip" id="s0-brand" data-start="0" data-duration="2.43" data-track-index="0">
+      <div data-hf-id="hf-vz0a" id="scan"></div>
+      <div data-hf-id="hf-nv54" id="brand">
+        <div data-hf-id="hf-f7bz" id="s0-name">NEXUS <span data-hf-id="hf-fmb9" class="nx">OPS</span></div>
+        <div data-hf-id="hf-d05m" id="s0-sub">Autonomous Operations Hub</div>
+        <div data-hf-id="hf-g1e7" id="s0-rule"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#s0-brand", { opacity: 0.999, scale: 1.06 }, { opacity: 1, scale: 1, duration: 0.4, ease: "power2.out" }, 0);
+    tl.set("#s0-brand", { opacity: 1 }, 0.001);
+    tl.fromTo("#scan", { y: -300, opacity: 1 }, { y: 300, duration: 0.55, ease: "power2.inOut" }, 0.05);
+    tl.to("#scan", { opacity: 0, duration: 0.3 }, 0.5);
+    tl.fromTo("#s0-sub", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 0.15);
+    tl.to("#s0-rule", { width: 380, duration: 0.45, ease: "power3.out" }, 0.4);
+    tl.to("#s0-name", { scale: 1.02, duration: 1.4, ease: "sine.inOut" }, 1.0);
+    window.__timelines["scene0"] = tl;
+  </script>
+</template>

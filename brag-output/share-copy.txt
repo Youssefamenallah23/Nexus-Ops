@@ -1,0 +1,3 @@
+Introducing NEXUS OPS: an autonomous operations hub where AI agents read your operational documents, a human approves once, and signed webhooks dispatch the work to n8n.
+Every agent step is traced in the Agent Observatory — zero unhandled exceptions.
+approve once. everything after is automatic.

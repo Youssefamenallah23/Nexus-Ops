@@ -4,6 +4,12 @@ Nexus Ops turns operational documents into work that a person can review and app
 
 The intended users are operations teams handling field and infrastructure paperwork. The useful boundary is the approval gate: model output becomes a proposal, and a person decides whether the workflow continues.
 
+## Product tour
+
+Recorded live from the running app — a document goes through the real pipeline, and the approve click dispatches it to n8n.
+
+[![Nexus Ops — 20-second product tour](brag-output/brag.jpg)](brag-output/brag.mp4)
+
 ## Follow one document through the app
 
 1. **Upload** a PDF, DOCX, TXT, or CSV, up to 10 MB. The server retains the original file and extracts its text. Scanned PDFs need a text layer; OCR is not included.

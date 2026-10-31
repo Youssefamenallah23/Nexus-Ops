@@ -16,3 +16,9 @@ uploads/
 cookies.txt
 docs.json
 an.json
+
+# local agent tooling
+.agents/
+.claude/
+.hallmark/
+skills-lock.json

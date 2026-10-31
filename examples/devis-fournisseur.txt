@@ -1,0 +1,10 @@
+OFFRE DE PRIX — FOURNISSEUR
+Fournisseur : Électricité Bretonne SARL
+Référence : DEMO-DEVIS-001
+Montant total : 8 250,00 €
+Date de livraison : 15/03/2027
+Chantier : Poste de transformation Rennes Nord
+Demandeur : Service Maintenance
+Résumé : Fourniture et pose d'un tableau général basse tension et de deux armoires de distribution.
+Priorité : prioritaire — échéance critique du chantier.
+Ceci est un échantillon fictif pour la démonstration de revue de document.

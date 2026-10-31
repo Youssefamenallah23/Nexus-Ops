@@ -1,0 +1,9 @@
+RAPPORT D'INTERVENTION
+Site / Chantier : Poste de distribution Saint-Malo Sud
+Demandeur : Service Exploitation
+Référence : INT-2027-0042
+Date : 12/06/2027
+Priorité : prioritaire
+Description : panne générale de l'éclairage public suite à un défaut du coffret de commande.
+Dépannage réalisé sur site par l'équipe de nuit ; alimentation rétablie après remplacement du disjoncteur défectueux.
+Ceci est un échantillon fictif pour la démonstration de revue de document.

@@ -1,0 +1,9 @@
+SUPPLIER QUOTE
+Supplier: Example Grid Services
+Reference: DEMO-QUOTE-001
+Total: 1,500.00 EUR
+Delivery date: 2030-12-01
+Site: Demo Substation
+Requester: Demo Operations
+Supply replacement circuit breakers for planned substation maintenance.
+This is a fictional sample for demonstrating document review.
